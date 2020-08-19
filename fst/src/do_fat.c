@@ -130,9 +130,9 @@ static const char *format_cluster_range (ULONG start, ULONG count)
   static char buf[60];
 
   if (count == 1)
-    sprintf (buf, "cluster %lu", start);
+    sprintf (buf, "cluster " LU_FMT "", start);
   else
-    sprintf (buf, "%lu clusters %lu-%lu", count, start, start + count - 1);
+    sprintf (buf, "" LU_FMT " clusters " LU_FMT "-" LU_FMT "", count, start, start + count - 1);
   return buf;
 }
 
@@ -221,7 +221,7 @@ static int use_cluster (ULONG cluster, BYTE what, const path_chain *path)
   old = usage_vector[cluster];
   if (old != USE_EMPTY)
     {
-      warning (1, "Cluster %lu usage conflict: %s vs. %s",
+      warning (1, "Cluster " LU_FMT " usage conflict: %s vs. %s",
                cluster, cluster_usage (usage_vector[cluster]),
                cluster_usage (what));
       if (path_vector != NULL && path_vector[cluster] != NULL)
@@ -272,7 +272,7 @@ static USHORT *read_fat16 (DISKIO *d, ULONG secno)
   clusters = total_clusters;
   sectors = DIVIDE_UP (clusters * 2, sector_size);
   if (sectors != sectors_per_fat)
-    warning (1, "Incorrect FAT size: %lu vs. %lu", sectors, sectors_per_fat);
+    warning (1, "Incorrect FAT size: " LU_FMT " vs. " LU_FMT "", sectors, sectors_per_fat);
   fat = xmalloc (sectors * sector_size);
   read_sec (d, fat, secno, sectors, TRUE);
   memcpy (raw_fat_start, fat, 2*2);
@@ -292,7 +292,7 @@ static USHORT *read_fat12 (DISKIO *d, ULONG secno)
   clusters = total_clusters;
   sectors = DIVIDE_UP (clusters * 3, sector_size * 2);
   if (sectors != sectors_per_fat)
-    warning (1, "Incorrect FAT size: %lu vs. %lu", sectors, sectors_per_fat);
+    warning (1, "Incorrect FAT size: " LU_FMT " vs. " LU_FMT "", sectors, sectors_per_fat);
   raw = xmalloc (sectors * sector_size + 2);
   read_sec (d, raw, secno, sectors, TRUE);
   memcpy (raw_fat_start, raw, 3);
@@ -324,7 +324,7 @@ static ULONG *read_fat32 (DISKIO *d, ULONG secno)
   clusters = total_clusters;
   sectors = DIVIDE_UP (clusters * 4, sector_size);
   if (sectors != sectors_per_fat)
-    warning (1, "Incorrect FAT size: %lu vs. %lu", sectors, sectors_per_fat);
+    warning (1, "Incorrect FAT size: " LU_FMT " vs. " LU_FMT "", sectors, sectors_per_fat);
   fat = xmalloc (sectors * sector_size);
   read_sec (d, fat, secno, sectors, TRUE);
   memcpy (raw_fat_start, fat, 2*4);
@@ -339,7 +339,7 @@ static USHORT *read_fat (DISKIO *d, ULONG secno, ULONG fatno)
   if (a_what)
     {
       if (!what_cluster_flag && IN_RANGE (what_sector, secno, sectors_per_fat))
-        info ("Sector #%lu: FAT %lu (+%lu)\n", what_sector, fatno + 1,
+        info ("Sector #" LU_FMT ": FAT " LU_FMT " (+" LU_FMT ")\n", what_sector, fatno + 1,
               what_sector - secno);
     }
   if (total_clusters - 2 > 4085)
@@ -424,12 +424,12 @@ static void info_fat (ULONG x)
   else if (x == (fat32_flag ? 0x0ffffff8 : 0xfff8))
     info ("last");
   else
-    info ("%lu", x);
+    info ("" LU_FMT "", x);
 }
 
 static void fat_difference (ULONG where, ULONG first, ULONG second)
 {
-  info ("  %lu: ", where);
+  info ("  " LU_FMT ": ", where);
   info_fat (first);
   info (" ");
   info_fat (second);
@@ -469,7 +469,7 @@ static void do_fats16 (DISKIO *d)
   for (i = 0; i < number_of_fats; ++i)
     {
       if (a_info)
-        info ("FAT %lu:                      %s\n",
+        info ("FAT " LU_FMT ":                      %s\n",
               i + 1, format_sector_range (secno, sectors_per_fat));
       fats16[i] = read_fat (d, secno, i);
       secno += sectors_per_fat;
@@ -478,7 +478,7 @@ static void do_fats16 (DISKIO *d)
     for (j = i + 1; j < number_of_fats; ++j)
       if (memcmp (fats16[i], fats16[j], total_clusters * sizeof (USHORT)) != 0)
         {
-          warning (1, "FATs %lu and %lu differ", i + 1, j + 1);
+          warning (1, "FATs " LU_FMT " and " LU_FMT " differ", i + 1, j + 1);
           info ("Differing clusters:\n");
           for (k = 0; k < total_clusters; ++k)
             if (fats16[i][k] != fats16[j][k])
@@ -501,8 +501,8 @@ static void do_fats16 (DISKIO *d)
               show_free (i);
           show_free_done ();
         }
-      info ("Number of free clusters:    %lu\n", free);
-      info ("Number of bad clusters:     %lu\n", bad);
+      info ("Number of free clusters:    " LU_FMT "\n", free);
+      info ("Number of bad clusters:     " LU_FMT "\n", bad);
     }
 }
 
@@ -515,7 +515,7 @@ static void do_fats32 (DISKIO *d)
   for (i = 0; i < number_of_fats; ++i)
     {
       if (a_info)
-        info ("FAT %lu:                      %s\n",
+        info ("FAT " LU_FMT ":                      %s\n",
               i + 1, format_sector_range (secno, sectors_per_fat));
       fats32[i] = read_fat32 (d, secno);
       secno += sectors_per_fat;
@@ -524,7 +524,7 @@ static void do_fats32 (DISKIO *d)
     for (j = i + 1; j < number_of_fats; ++j)
       if (memcmp (fats32[i], fats32[j], total_clusters * sizeof (ULONG)) != 0)
         {
-          warning (1, "FATs %lu and %lu differ", i + 1, j + 1);
+          warning (1, "FATs " LU_FMT " and " LU_FMT " differ", i + 1, j + 1);
           info ("Differing clusters:\n");
           for (k = 0; k < total_clusters; ++k)
             if (fats32[i][k] != fats32[j][k])
@@ -547,8 +547,8 @@ static void do_fats32 (DISKIO *d)
               show_free (i);
           show_free_done ();
         }
-      info ("Number of free clusters:    %lu\n", free);
-      info ("Number of bad clusters:     %lu\n", bad);
+      info ("Number of free clusters:    " LU_FMT "\n", free);
+      info ("Number of bad clusters:     " LU_FMT "\n", bad);
     }
 }
 
@@ -564,7 +564,7 @@ static void read_ea_data (DISKIO *d)
     return;
   if (ea_data_start < 2 || ea_data_start >= total_clusters)
     {
-      warning (1, "\"EA DATA. SF\": Start cluster (%lu) is invalid",
+      warning (1, "\"EA DATA. SF\": Start cluster (" LU_FMT ") is invalid",
                ea_data_start);
       return;
     }
@@ -594,7 +594,7 @@ static void read_ea_data (DISKIO *d)
     }
   if (min_cluster >= total_clusters)
     {
-      warning (1, "\"EA DATA. SF\": Second table is too big (%lu clusters)",
+      warning (1, "\"EA DATA. SF\": Second table is too big (" LU_FMT " clusters)",
                min_cluster);
       return;
     }
@@ -652,22 +652,22 @@ static void do_ea (DISKIO *d, const path_chain *path, ULONG ea_index,
 
   if ((ea_index >> 7) >= 240 || ea_index >= ea_table2_entries)
     {
-      warning (1, "\"%s\": Invalid EA index (%lu)",
+      warning (1, "\"%s\": Invalid EA index (" LU_FMT ")",
                format_path_chain (path, NULL), ea_index);
       return;
     }
   if (ea_table2[ea_index] == 0xffff)
     {
-      warning (1, "\"%s\": EA index (%lu) points to unused slot",
+      warning (1, "\"%s\": EA index (" LU_FMT ") points to unused slot",
                format_path_chain (path, NULL), ea_index);
       return;
     }
   rel_cluster = ea_table1[ea_index >> 7] + ea_table2[ea_index];
   if (show)
-    info ("Rel. EA cluster:    %lu\n", rel_cluster);
+    info ("Rel. EA cluster:    " LU_FMT "\n", rel_cluster);
   if ((rel_cluster + 1) * bytes_per_cluster > ea_data_size)
     {
-      warning (1, "\"%s\": Invalid relative EA cluster (%lu)",
+      warning (1, "\"%s\": Invalid relative EA cluster (" LU_FMT ")",
                format_path_chain (path, NULL), rel_cluster);
       return;
     }
@@ -684,37 +684,37 @@ static void do_ea (DISKIO *d, const path_chain *path, ULONG ea_index,
   read_sec (d, &ea3, secno, 1, FALSE);
   if (memcmp (ea3.ea3.magic, "EA", 2) != 0)
     {
-      warning (1, "\"%s\": Incorrect signature for EA (sector #%lu)",
+      warning (1, "\"%s\": Incorrect signature for EA (sector #" LU_FMT ")",
                format_path_chain (path, NULL), secno);
       return;
     }
 
   if (READ_USHORT (&ea3.ea3.rel_cluster) != ea_index)
     warning (1, "\"%s\": Incorrect EA index in \"EA DATA. SF\" "
-             "(sector #%lu)", format_path_chain (path, NULL), secno);
+             "(sector #" LU_FMT ")", format_path_chain (path, NULL), secno);
 
   if (memchr (ea3.ea3.name, 0, 13) == NULL)
     warning (1, "\"%s\": Name in \"EA DATA. SF\" not null-terminated "
-             "(sector #%lu)", format_path_chain (path, NULL), secno);
+             "(sector #" LU_FMT ")", format_path_chain (path, NULL), secno);
   /* OS/2 does not update "EA DATA. SF" when renaming a file!
      Therefore we check this only if -p is given. */
   else if (check_pedantic
            && strcmp ((const char *)ea3.ea3.name, path->name) != 0)
     warning (0, "\"%s\": Name in \"EA DATA. SF\" does not match "
-             "(sector #%lu)", format_path_chain (path, NULL), secno);
+             "(sector #" LU_FMT ")", format_path_chain (path, NULL), secno);
 
   size = READ_ULONG (&ea3.ea3.fealist.cbList);
   if (size >= 0x40000000
       || (rel_cluster * bytes_per_cluster
           + offsetof (FAT_SECTOR, ea3.fealist)) > ea_data_size)
     {
-      warning (1, "\"%s\": EAs too big (sector #%lu, %lu bytes)",
+      warning (1, "\"%s\": EAs too big (sector #" LU_FMT ", " LU_FMT " bytes)",
                format_path_chain (path, NULL), secno, size);
       return;
     }
 
   if (show)
-    info ("Size of EAs:        %lu\n", size);
+    info ("Size of EAs:        " LU_FMT "\n", size);
 
   size2 = size + offsetof (FAT_SECTOR, ea3.fealist);
 
@@ -725,7 +725,7 @@ static void do_ea (DISKIO *d, const path_chain *path, ULONG ea_index,
         {
           if (ea_usage[rel_cluster+i] != FALSE)
             {
-              warning (1, "Relative cluster %lu of \"EA DATA. SF\" "
+              warning (1, "Relative cluster " LU_FMT " of \"EA DATA. SF\" "
                        "multiply used", rel_cluster + i);
               warning_cont ("File 2: \"%s\"", format_path_chain (path, NULL));
             }
@@ -744,7 +744,7 @@ static void do_ea (DISKIO *d, const path_chain *path, ULONG ea_index,
         {
           if (c < 2 || c >= total_clusters)
             abort ();           /* Already checked */
-          info ("Extended attributes in cluster %lu\n", c);
+          info ("Extended attributes in cluster " LU_FMT "\n", c);
           c = FAT_ENTRY (c);
         }
     }
@@ -756,7 +756,7 @@ static void do_ea (DISKIO *d, const path_chain *path, ULONG ea_index,
           if (cluster < 2 || cluster >= total_clusters)
             abort ();           /* Already checked */
           if (what_cluster_flag && cluster == what_cluster)
-            info ("Cluster %lu: Extended attributes for \"%s\"\n",
+            info ("Cluster " LU_FMT ": Extended attributes for \"%s\"\n",
                   cluster, format_path_chain (path, NULL));
           else if (!what_cluster_flag)
             {
@@ -764,7 +764,7 @@ static void do_ea (DISKIO *d, const path_chain *path, ULONG ea_index,
               if (IN_RANGE (what_sector, secno,
                             MIN (sectors_per_cluster,
                                  DIVIDE_UP (size2 - pos, 512))))
-                info ("Sector #%lu: Extended attributes for \"%s\"\n",
+                info ("Sector #" LU_FMT ": Extended attributes for \"%s\"\n",
                       what_sector, format_path_chain (path, NULL));
             }
           cluster = FAT_ENTRY (cluster);
@@ -809,7 +809,7 @@ static void do_ea (DISKIO *d, const path_chain *path, ULONG ea_index,
             warning (1, "\"%s\": EA name not null-terminated",
                      format_path_chain (path, NULL));
           if (show_eas >= 1)
-            info ("Extended attribute %s (%lu bytes)\n",
+            info ("Extended attribute %s (" LU_FMT " bytes)\n",
                   format_ea_name (pfea), value_size);
           pos += sizeof (FEA) + pfea->cbName + 1 + value_size;
         }
@@ -843,7 +843,7 @@ static void dirent_warning (int level, const char *fmt, ULONG secno,
   va_list arg_ptr;
 
   warning_prolog (level);
-  my_fprintf (diag_file, "Directory sector #%lu (\"%s\"): \"%s\": ",
+  my_fprintf (diag_file, "Directory sector #" LU_FMT " (\"%s\"): \"%s\": ",
               secno, format_path_chain (path, NULL), name);
   va_start (arg_ptr, name);
   my_vfprintf (diag_file, fmt, arg_ptr);
@@ -923,7 +923,7 @@ static void do_file (DISKIO *d, ULONG start_cluster, int dir_flag,
         else if (cluster < (fat32_flag ? 0x0ffffff8 : 0xfff8)
                  && (cluster < 2 || cluster >= total_clusters))
           {
-            warning (1, "\"%s\": %lu: Invalid cluster number",
+            warning (1, "\"%s\": " LU_FMT ": Invalid cluster number",
                      format_path_chain (path, NULL), cluster);
             break;
           }
@@ -931,19 +931,19 @@ static void do_file (DISKIO *d, ULONG start_cluster, int dir_flag,
           {
             if (!use_cluster (cluster, dir_flag ? USE_DIR : USE_FILE, path))
               {
-                warning (1, "\"%s\": Cycle after %lu clusters",
+                warning (1, "\"%s\": Cycle after " LU_FMT " clusters",
                          format_path_chain (path, NULL), count);
                 break;
               }
             if (a_what)
               {
                 if (what_cluster_flag && what_cluster == cluster)
-                  info ("Cluster %lu: Relative cluster %lu of \"%s\"\n",
+                  info ("Cluster " LU_FMT ": Relative cluster " LU_FMT " of \"%s\"\n",
                         what_cluster, count, format_path_chain (path, NULL));
                 else if (!what_cluster_flag
                          && IN_RANGE (what_sector, CLUSTER_TO_SECTOR (cluster),
                                       sectors_per_cluster))
-                  info ("Sector #%lu: Relative sector %lu of \"%s\"\n",
+                  info ("Sector #" LU_FMT ": Relative sector " LU_FMT " of \"%s\"\n",
                         what_sector,
                         (count * sectors_per_cluster
                          + what_sector - CLUSTER_TO_SECTOR (cluster)),
@@ -984,8 +984,8 @@ static void do_file (DISKIO *d, ULONG start_cluster, int dir_flag,
       if (ext_length != 0)
         info ("File data in %s\n",
               format_cluster_range (ext_start, ext_length));
-      info ("Number of clusters: %lu\n", count);
-      info ("Number of extents:  %lu\n", extents);
+      info ("Number of clusters: " LU_FMT "\n", count);
+      info ("Number of extents:  " LU_FMT "\n", extents);
     }
 
 #ifdef OS2
@@ -1068,18 +1068,18 @@ static void do_set_data_1 (const struct change *chg, ULONG cluster,
                            ULONG *count, int really)
 {
   if (cluster < 2 || cluster >= total_clusters)
-    error ("Invalid cluster number %lu", cluster);
+    error ("Invalid cluster number " LU_FMT "", cluster);
   if (ALLOCATED (cluster))
-    error ("Cluster %lu is not free", cluster);
+    error ("Cluster " LU_FMT " is not free", cluster);
   if (seen[cluster])
-    error ("Cluster %lu is added more than once", cluster);
+    error ("Cluster " LU_FMT " is added more than once", cluster);
   seen[cluster] = TRUE;
   if (really)
     {
       if (chg->type == CT_APPEND)
         {
 #if 0
-          info ("Appending cluster %lu, head=%lu, tail=%lu\n",
+          info ("Appending cluster " LU_FMT ", head=" LU_FMT ", tail=" LU_FMT "\n",
                 cluster, *head, *tail);
 #endif
           if (*tail == 0)
@@ -1194,7 +1194,7 @@ static void do_dirent (DISKIO *d, const BYTE *sec_buf, ULONG secno,
       if (pv->flag)
         {
           warning (1, "\"%s\": Unused directory entry after VFAT name "
-                   "(sector #%lu)", format_path_chain (path, NULL), secno);
+                   "(sector #" LU_FMT ")", format_path_chain (path, NULL), secno);
           pv->flag = FALSE;
         }
       return;
@@ -1202,7 +1202,7 @@ static void do_dirent (DISKIO *d, const BYTE *sec_buf, ULONG secno,
 
   if (*dir_end_flag == des_zero_seen && fix_zero_ends_dir)
     {
-      warning (1, "\"%s\": non-empty directory entry after 0x00 (sector #%lu)",
+      warning (1, "\"%s\": non-empty directory entry after 0x00 (sector #" LU_FMT ")",
 	       format_path_chain (path, NULL), secno);
       if (ask_fix ())
 	{
@@ -1242,7 +1242,7 @@ static void do_dirent (DISKIO *d, const BYTE *sec_buf, ULONG secno,
 
       if (show)
         {
-          info ("Directory entry %lu of \"%s\":\n", dirent_index,
+          info ("Directory entry " LU_FMT " of \"%s\":\n", dirent_index,
                 format_path_chain (path, NULL));
           info ("  VFAT name frag:   \"");
           for (i = 0; i < n; ++i)
@@ -1255,7 +1255,7 @@ static void do_dirent (DISKIO *d, const BYTE *sec_buf, ULONG secno,
 
       if (v->flag > 0x7f)
         {
-          warning (1, "\"%s\": Invalid VFAT name (sector #%lu)",
+          warning (1, "\"%s\": Invalid VFAT name (sector #" LU_FMT ")",
                    format_path_chain (path, NULL), secno);
           pv->flag = FALSE;
           return;
@@ -1264,11 +1264,11 @@ static void do_dirent (DISKIO *d, const BYTE *sec_buf, ULONG secno,
         {
           if (pv->flag)
             warning (1, "\"%s\": No real directory entry after VFAT name "
-                     "(sector #%lu)", format_path_chain (path, NULL), secno);
+                     "(sector #" LU_FMT ")", format_path_chain (path, NULL), secno);
           else if (n == 0 || (n != 13 && vname[n-1] != 0))
             {
               warning (1, "\"%s\": VFAT name not null-terminated "
-                       "(sector #%lu)", format_path_chain (path, NULL), secno);
+                       "(sector #" LU_FMT ")", format_path_chain (path, NULL), secno);
               return;
             }
           else
@@ -1285,18 +1285,18 @@ static void do_dirent (DISKIO *d, const BYTE *sec_buf, ULONG secno,
         }
       if ((v->flag & 0x3f) != pv->index || pv->index == 0)
         {
-          warning (1, "\"%s\": Incorrect VFAT name index (sector #%lu)",
+          warning (1, "\"%s\": Incorrect VFAT name index (sector #" LU_FMT ")",
                    format_path_chain (path, NULL), secno);
           pv->flag = FALSE;
           return;
         }
       if (v->checksum != pv->checksum)
-        warning (1, "\"%s\": Incorrect VFAT checksum (sector #%lu)",
+        warning (1, "\"%s\": Incorrect VFAT checksum (sector #" LU_FMT ")",
                  format_path_chain (path, NULL), secno);
       pv->index -= 1;
       if (pv->start < n)
         {
-          warning (1, "\"%s\": VFAT name too long (sector #%lu)",
+          warning (1, "\"%s\": VFAT name too long (sector #" LU_FMT ")",
                    format_path_chain (path, NULL), secno);
           pv->flag = FALSE;
           return;
@@ -1351,7 +1351,7 @@ static void do_dirent (DISKIO *d, const BYTE *sec_buf, ULONG secno,
     {
       if (pv->index != 0)
         {
-          warning (1, "\"%s\": Incomplete VFAT name for \"%s\" (sector #%lu)",
+          warning (1, "\"%s\": Incomplete VFAT name for \"%s\" (sector #" LU_FMT ")",
                    format_path_chain (path, NULL), name, secno);
           pv->flag = FALSE;
         }
@@ -1363,7 +1363,7 @@ static void do_dirent (DISKIO *d, const BYTE *sec_buf, ULONG secno,
       for (i = 0; i < 8+3; ++i)
         cs = rorb1 (cs) + p->name[i];
       if (cs != pv->checksum)
-        warning (1, "\"%s\": Checksum mismatch for \"%s\" (sector #%lu): "
+        warning (1, "\"%s\": Checksum mismatch for \"%s\" (sector #" LU_FMT "): "
                  "0x%.2x vs. 0x%.2x", format_path_chain (path, NULL), name,
                  secno, pv->checksum, cs);
     }
@@ -1377,7 +1377,7 @@ static void do_dirent (DISKIO *d, const BYTE *sec_buf, ULONG secno,
           found = TRUE;
           if (a_where)
             {
-              info ("Directory entry in sector #%lu\n", secno);
+              info ("Directory entry in sector #" LU_FMT "\n", secno);
               show = TRUE;
             }
           if (a_dir)
@@ -1417,7 +1417,7 @@ static void do_dirent (DISKIO *d, const BYTE *sec_buf, ULONG secno,
     {
       ULONG size = READ_ULONG (&p->size);
       ULONG clusters = DIVIDE_UP (size, bytes_per_cluster);
-      info ("Directory entry %lu of \"%s\":\n", dirent_index,
+      info ("Directory entry " LU_FMT " of \"%s\":\n", dirent_index,
             format_path_chain (path, NULL));
       info ("  Name:             \"%s\"\n", name);
       info ("  Attributes:       0x%.2x", p->attr);
@@ -1434,10 +1434,10 @@ static void do_dirent (DISKIO *d, const BYTE *sec_buf, ULONG secno,
       if (p->attr & ATTR_ARCHIVED)
         info (" arch");
       info ("\n");
-      info ("  Cluster:          %lu\n", cluster);
+      info ("  Cluster:          " LU_FMT "\n", cluster);
       info ("  Time:             0x%.4x (%s)\n", time, format_time (time));
       info ("  Date:             0x%.4x (%s)\n", date, format_date (date));
-      info ("  Size:             %lu (%lu cluster%s)\n",
+      info ("  Size:             " LU_FMT " (" LU_FMT " cluster%s)\n",
             size, clusters, (clusters == 1) ? "" : "s");
       info ("  EA pointer:       %u\n", READ_USHORT (&p->ea));
       if (pv->flag)
@@ -1500,7 +1500,7 @@ static void do_dirent (DISKIO *d, const BYTE *sec_buf, ULONG secno,
       else if (!(p->attr & ATTR_DIR))
         dirent_warning (1, "Not a directory", secno, path, name);
       else if (cluster != (i == 1 ? start_cluster : parent_cluster))
-        dirent_warning (1, "Incorrect cluster (%lu vs. %lu)",
+        dirent_warning (1, "Incorrect cluster (" LU_FMT " vs. " LU_FMT ")",
                         secno, path, name,
                         cluster, (i == 1 ? start_cluster : parent_cluster));
       return;
@@ -1553,7 +1553,7 @@ static void do_dirent (DISKIO *d, const BYTE *sec_buf, ULONG secno,
       else
         error ("Oops, unknown name");
       write_sec (d, sec_buf, secno, 1);
-      info ("Sector #%lu modified\n", secno);
+      info ("Sector #" LU_FMT " modified\n", secno);
     }
 
   if (found && a_set_data)
@@ -1622,13 +1622,13 @@ static void do_dir (DISKIO *d, ULONG secno, ULONG entries,
         {
           if (what_cluster_flag && what_cluster == this_cluster)
             {
-              info ("Cluster %lu: Directory \"%s\"\n", what_cluster,
+              info ("Cluster " LU_FMT ": Directory \"%s\"\n", what_cluster,
                     format_path_chain (path, NULL));
               show = TRUE;
             }
           else if (!what_cluster_flag && what_sector == secno)
             {
-              info ("Sector #%lu: Directory \"%s\"\n", what_sector,
+              info ("Sector #" LU_FMT ": Directory \"%s\"\n", what_sector,
                     format_path_chain (path, NULL));
               show = TRUE;
             }
@@ -1688,8 +1688,8 @@ static void find_ea_data (DISKIO *d, ULONG secno, ULONG entries)
               ea_data_clusters = DIVIDE_UP (ea_data_size, bytes_per_cluster);
               if (a_info)
                 {
-                  info ("\"EA DATA. SF\" 1st cluster:  %lu\n", ea_data_start);
-                  info ("\"EA DATA. SF\" size:         %lu\n", ea_data_size);
+                  info ("\"EA DATA. SF\" 1st cluster:  " LU_FMT "\n", ea_data_start);
+                  info ("\"EA DATA. SF\" size:         " LU_FMT "\n", ea_data_size);
                 }
               return;
             }
@@ -1724,7 +1724,7 @@ static void do_root_dir (DISKIO *d)
   if (a_what)
     {
       if (!what_cluster_flag && IN_RANGE (what_sector, secno, root_sectors))
-        info ("Sector #%lu: Root directory (+%lu)\n", what_sector,
+        info ("Sector #" LU_FMT ": Root directory (+" LU_FMT ")\n", what_sector,
               what_sector - secno);
     }
 
@@ -1789,7 +1789,7 @@ static void check_alloc (void)
   if (count == 1)
     warning (0, "The file system has 1 lost cluster");
   else if (count > 1)
-    warning (0, "The file system has %lu lost clusters", count);
+    warning (0, "The file system has " LU_FMT " lost clusters", count);
 
   head_vector = (BYTE *)xmalloc (total_clusters);
   memset (head_vector, 1, total_clusters);
@@ -1922,8 +1922,8 @@ void do_fat (DISKIO *d, const FAT_SECTOR *pboot)
         bits = 16;
       else
         bits = 12;
-      info ("Number of clusters:         %lu\n", total_clusters - 2);
-      info ("First data sector:          #%lu\n", data_sector);
+      info ("Number of clusters:         " LU_FMT "\n", total_clusters - 2);
+      info ("First data sector:          #" LU_FMT "\n", data_sector);
       info ("Bits per FAT entry:         %u\n", bits);
     }
 
@@ -1938,7 +1938,7 @@ void do_fat (DISKIO *d, const FAT_SECTOR *pboot)
   if (a_what)
     {
       if (!what_cluster_flag && what_sector == 0)
-        info ("Sector #%lu: Boot sector\n", what_sector);
+        info ("Sector #" LU_FMT ": Boot sector\n", what_sector);
     }
 
   if (a_copy_fat)
@@ -2011,33 +2011,33 @@ void do_fat (DISKIO *d, const FAT_SECTOR *pboot)
           i = SECTOR_TO_CLUSTER (what_sector);
           if (i >= 2 && i < total_clusters)
             {
-              info ("Sector #%lu: Cluster %lu\n", what_sector, i);
+              info ("Sector #" LU_FMT ": Cluster " LU_FMT "\n", what_sector, i);
               if (BADSECTOR (i))
-                info ("Sector #%lu: Cluster contains bad sector\n",
+                info ("Sector #" LU_FMT ": Cluster contains bad sector\n",
                       what_sector);
               else if (LASTCLUSTER (i))
-                info ("Sector #%lu: In last cluster of a file or directory\n",
+                info ("Sector #" LU_FMT ": In last cluster of a file or directory\n",
                       what_sector);
               else if (UNUSED (i))
-                info ("Sector #%lu: In an unused cluster\n", what_sector);
+                info ("Sector #" LU_FMT ": In an unused cluster\n", what_sector);
               else
-                info ("Sector #%lu: In a used cluster\n", what_sector);
+                info ("Sector #" LU_FMT ": In a used cluster\n", what_sector);
             }
         }
       else if (what_cluster_flag)
         {
-          info ("Cluster %lu: %s\n", what_cluster,
+          info ("Cluster " LU_FMT ": %s\n", what_cluster,
                 format_sector_range (CLUSTER_TO_SECTOR (what_cluster),
                                      sectors_per_cluster));
           if (BADSECTOR (what_cluster))
-            info ("Cluster %lu: Cluster contains bad sector\n", what_cluster);
+            info ("Cluster " LU_FMT ": Cluster contains bad sector\n", what_cluster);
           else if (LASTCLUSTER (what_cluster))
-            info ("Cluster %lu: Last cluster of a file or directory\n",
+            info ("Cluster " LU_FMT ": Last cluster of a file or directory\n",
                   what_cluster);
           else if (UNUSED (what_cluster))
-            info ("Cluster %lu: Unused\n", what_cluster);
+            info ("Cluster " LU_FMT ": Unused\n", what_cluster);
           else
-            info ("Cluster %lu: Used\n", what_cluster);
+            info ("Cluster " LU_FMT ": Used\n", what_cluster);
         }
     }
 

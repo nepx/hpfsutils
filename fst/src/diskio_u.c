@@ -708,7 +708,7 @@ static void seek_sec (FILE *f, ULONG sec, ULONG size)
 #if defined (_FILE_OFFSET_BITS) && _FILE_OFFSET_BITS >= 32 + 9
   off_t off;
   if (sec > (1ULL << (_FILE_OFFSET_BITS - 1)) / size)
-    error ("Sector number #%lu out of range", sec);
+    error ("Sector number #" LU_FMT " out of range", sec);
   off = sec;
   off *= size;
   r = fseeko (f, off, SEEK_SET);
@@ -729,7 +729,7 @@ static void seek_sec (FILE *f, ULONG sec, ULONG size)
     }
 #endif
   if (r != 0)
-    error ("Cannot seek to sector #%lu (%s)", sec, strerror (errno));
+    error ("Cannot seek to sector #" LU_FMT " (%s)", sec, strerror (errno));
 }
 
 
@@ -743,9 +743,9 @@ static void read_sec_file (FILE *f, void *dst, ULONG sec, ULONG size,
   seek_sec (f, sec, size);
   r = fread (dst, size, count, f);
   if (ferror (f))
-    error ("Cannot read sector #%lu (%s)", sec, strerror (errno));
+    error ("Cannot read sector #" LU_FMT " (%s)", sec, strerror (errno));
   if (r != count)
-    error ("EOF reached while reading sector #%lu", sec);
+    error ("EOF reached while reading sector #" LU_FMT "", sec);
 }
 
 
@@ -767,11 +767,11 @@ void read_sec (DISKIO *d, void *dst, ULONG sec, ULONG count, int save)
         pos.QuadPart = sec;
         pos.QuadPart *= d->sector_size;
         if (!SetFilePointerEx (d->x.file.h, pos, NULL, FILE_BEGIN))
-          error ("Cannot seek to sector #%lu (error %ld)", sec, (long)GetLastError ());
+          error ("Cannot seek to sector #" LU_FMT " (error %ld)", sec, (long)GetLastError ());
         if (!ReadFile (d->x.file.h, dst, count * d->sector_size, &nread, NULL))
-          error ("Cannot read sector #%lu (error %ld)", sec, (long)GetLastError ());
+          error ("Cannot read sector #" LU_FMT " (error %ld)", sec, (long)GetLastError ());
         if (nread != count * d->sector_size)
-          error ("EOF reached while reading sector #%lu", sec);
+          error ("EOF reached while reading sector #" LU_FMT "", sec);
       }
 #else
       read_sec_file (d->x.file.f, dst, sec, d->sector_size, count);
@@ -783,7 +783,7 @@ void read_sec (DISKIO *d, void *dst, ULONG sec, ULONG count, int save)
         {
           j = find_sec_in_snapshot (d, n);
           if (j == 0)
-            error ("Sector #%lu not found in snapshot file", n);
+            error ("Sector #" LU_FMT " not found in snapshot file", n);
           read_sec_file (d->x.snapshot.f, p, j, d->sector_size, 1);
           if (d->x.snapshot.version >= 1)
 	    {
@@ -842,12 +842,12 @@ static int write_sec_file (FILE *f, const void *src, ULONG sec, ULONG size,
   r = fwrite (src, size, count, f);
   if (ferror (f))
     {
-      warning (1, "Cannot write sector #%lu (%s)", sec, strerror (errno));
+      warning (1, "Cannot write sector #" LU_FMT " (%s)", sec, strerror (errno));
       return FALSE;
     }
   if (r != count)
     {
-      warning (1, "Incomplete write for sector #%lu", sec);
+      warning (1, "Incomplete write for sector #" LU_FMT "", sec);
       return FALSE;
     }
   return TRUE;
@@ -865,7 +865,7 @@ static int write_sec_snapshot (DISKIO *d, const void *src, ULONG sec)
   j = find_sec_in_snapshot (d, sec);
   if (j == 0)
     {
-      warning (1, "Sector #%lu not found in snapshot file", sec);
+      warning (1, "Sector #" LU_FMT " not found in snapshot file", sec);
       return FALSE;
     }
 
@@ -897,11 +897,11 @@ int write_sec (DISKIO *d, const void *src, ULONG sec, ULONG count)
         pos.QuadPart = sec;
         pos.QuadPart *= d->sector_size;
         if (!SetFilePointerEx (d->x.file.h, pos, NULL, FILE_BEGIN))
-          error ("Cannot seek to sector #%lu (error %ld)", sec, (long)GetLastError ());
+          error ("Cannot seek to sector #" LU_FMT " (error %ld)", sec, (long)GetLastError ());
         if (!WriteFile (d->x.file.h, src, count * d->sector_size, &nwritten, NULL))
-          error ("Cannot write sector #%lu (error %ld)", sec, (long)GetLastError ());
+          error ("Cannot write sector #" LU_FMT " (error %ld)", sec, (long)GetLastError ());
         if (nwritten != count * d->sector_size)
-          error ("Short write for sector #%lu", sec);
+          error ("Short write for sector #" LU_FMT "", sec);
         return TRUE;
       }
 #else

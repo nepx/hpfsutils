@@ -240,7 +240,7 @@ DISKIO *diskio_open (PCSZ fname, unsigned flags, ULONG sector_size,
                     OPEN_ACTION_FAIL_IF_NEW | OPEN_ACTION_OPEN_IF_EXISTS,
                     mode, 0);
       if (rc != 0)
-        error ("Cannot open %s (rc=%lu)", fname, rc);
+        error ("Cannot open %s (rc=" LU_FMT ")", fname, rc);
 
       if (!dont_lock)
         {
@@ -284,7 +284,7 @@ DISKIO *diskio_open (PCSZ fname, unsigned flags, ULONG sector_size,
                         &parm, parmlen, &parmlen,
                         &bpb, datalen, &datalen);
       if (rc != 0)
-        error ("Cannot get device parameters (rc=%lu)", rc);
+        error ("Cannot get device parameters (rc=" LU_FMT ")", rc);
 
       /* CDROMs have a strange (faked) geometry which we cannot
          handle.  Reject all removable disks. */
@@ -302,14 +302,14 @@ DISKIO *diskio_open (PCSZ fname, unsigned flags, ULONG sector_size,
       if (a_info)
         {
           info ("BIOS parameter block:\n");
-          info ("  Sectors per track:        %lu\n",
+          info ("  Sectors per track:        " LU_FMT "\n",
                 (ULONG)bpb.usSectorsPerTrack);
-          info ("  Heads:                    %lu\n",
+          info ("  Heads:                    " LU_FMT "\n",
                 (ULONG)bpb.cHeads);
-          info ("  Cylinders:                %lu\n",
+          info ("  Cylinders:                " LU_FMT "\n",
                 (ULONG)bpb.cCylinders);
-          info ("  Total number of sectors:  %lu\n", d->total_sectors);
-          info ("  Hidden sectors:           %lu\n", bpb.cHiddenSectors);
+          info ("  Total number of sectors:  " LU_FMT "\n", d->total_sectors);
+          info ("  Hidden sectors:           " LU_FMT "\n", bpb.cHiddenSectors);
         }
 
       /* Adjust the number of sectors and remember the number of
@@ -363,7 +363,7 @@ DISKIO *diskio_open (PCSZ fname, unsigned flags, ULONG sector_size,
                              (PVOID)&ulParm, parmlen, &parmlen,
                              0x9014, NULL, hf, FSCTL_HANDLE);
               if (rc != 0)
-                error ("Cannot switch handle to sector I/O mode, rc=%lu\n",
+                error ("Cannot switch handle to sector I/O mode, rc=" LU_FMT "\n",
                        rc);
               d->x.dasd.sec_mode = TRUE;
             }
@@ -393,13 +393,13 @@ DISKIO *diskio_open (PCSZ fname, unsigned flags, ULONG sector_size,
                     OPEN_ACTION_FAIL_IF_NEW | OPEN_ACTION_OPEN_IF_EXISTS,
                     mode, 0);
       if (rc != 0)
-        error ("Cannot open %s (rc=%lu)", fname, rc);
+        error ("Cannot open %s (rc=" LU_FMT ")", fname, rc);
 
       /* Read the header and check the magic number. */
 
       rc = DosRead (hf, &hdr, sizeof (hdr), &nread);
       if (rc != 0)
-        error ("Cannot read %s (rc=%lu)", fname, rc);
+        error ("Cannot read %s (rc=" LU_FMT ")", fname, rc);
       if (nread != 512
           || !(((flags & DIO_SNAPSHOT)
                 && READ_ULONG (&hdr.magic) == SNAPSHOT_MAGIC)
@@ -435,7 +435,7 @@ DISKIO *diskio_open (PCSZ fname, unsigned flags, ULONG sector_size,
           rc = DosSetFilePtr (hf, READ_ULONG (&hdr.s.map_pos),
                               FILE_BEGIN, &pos);
           if (rc != 0)
-            error ("Cannot read %s (rc=%lu)", fname, rc);
+            error ("Cannot read %s (rc=" LU_FMT ")", fname, rc);
 
           /* Load the sector map. */
 
@@ -445,7 +445,7 @@ DISKIO *diskio_open (PCSZ fname, unsigned flags, ULONG sector_size,
           rc = DosRead (hf, map, d->x.snapshot.sector_count * sizeof (ULONG),
                         &nread);
           if (rc != 0)
-            error ("Cannot read %s (rc=%lu)", fname, rc);
+            error ("Cannot read %s (rc=" LU_FMT ")", fname, rc);
           if (nread != d->x.snapshot.sector_count * sizeof (ULONG))
             error ("Cannot read %s", fname);
 
@@ -556,7 +556,7 @@ void diskio_close (DISKIO *d)
       abort ();
     }
   if (rc != 0)
-    error ("disk_close failed, rc=%lu", rc);
+    error ("disk_close failed, rc=" LU_FMT "", rc);
   free (d);
 }
 
@@ -854,7 +854,7 @@ static void seek_sec_hfile (HFILE hf, int sec_io, ULONG sec)
         }
     }
   if (rc != 0)
-    error ("Cannot seek to sector #%lu (rc=%lu)", sec, rc);
+    error ("Cannot seek to sector #" LU_FMT " (rc=" LU_FMT ")", sec, rc);
 }
 
 
@@ -869,9 +869,9 @@ static void read_sec_hfile (HFILE hf, int sec_io, void *dst,
   seek_sec_hfile (hf, sec_io, sec);
   rc = DosRead (hf, dst, i, &n);
   if (rc != 0)
-    error ("Cannot read sector #%lu (rc=%lu)", sec, rc);
+    error ("Cannot read sector #" LU_FMT " (rc=" LU_FMT ")", sec, rc);
   if (n != i)
-    error ("EOF reached while reading sector #%lu", sec);
+    error ("EOF reached while reading sector #" LU_FMT "", sec);
 }
 
 
@@ -907,7 +907,7 @@ static void read_sec_track (HFILE hf, struct diskio_track *dt, void *dst,
                         ptl, parmlen, &parmlen,
                         dt->track_buf, datalen, &datalen);
       if (rc != 0)
-        error ("Cannot read sector #%lu (rc=%lu)", sec, rc);
+        error ("Cannot read sector #" LU_FMT " (rc=" LU_FMT ")", sec, rc);
       memcpy (p, dt->track_buf, temp * 512);
       sec += temp; p += temp * 512; count -= temp;
     }
@@ -936,7 +936,7 @@ void read_sec (DISKIO *d, void *dst, ULONG sec, ULONG count, int save)
         {
           j = find_sec_in_snapshot (d, n);
           if (j == 0)
-            error ("Sector #%lu not found in snapshot file", n);
+            error ("Sector #" LU_FMT " not found in snapshot file", n);
           read_sec_hfile (d->x.snapshot.hf, FALSE, p, j, 1);
           if (d->x.snapshot.version >= 1)
 	    {
@@ -996,12 +996,12 @@ static int write_sec_hfile (HFILE hf, int sec_io, const void *src, ULONG sec,
   rc = DosWrite (hf, src, i, &n);
   if (rc != 0)
     {
-      warning (1, "Cannot write sector #%lu (rc=%lu)", sec, rc);
+      warning (1, "Cannot write sector #" LU_FMT " (rc=" LU_FMT ")", sec, rc);
       return FALSE;
     }
   if (n != i)
     {
-      warning (1, "Incomplete write for sector #%lu", sec);
+      warning (1, "Incomplete write for sector #" LU_FMT "", sec);
       return FALSE;
     }
   return TRUE;
@@ -1039,7 +1039,7 @@ static int write_sec_track (HFILE hf, struct diskio_track *dt,
                         dt->track_buf, datalen, &datalen);
       if (rc != 0)
         {
-          warning (1, "Cannot write sector #%lu (rc=%lu)", sec, rc);
+          warning (1, "Cannot write sector #" LU_FMT " (rc=" LU_FMT ")", sec, rc);
           return FALSE;
         }
       sec += temp; p += temp * 512; count -= temp;
@@ -1059,7 +1059,7 @@ static int write_sec_snapshot (DISKIO *d, const void *src, ULONG sec)
   j = find_sec_in_snapshot (d, sec);
   if (j == 0)
     {
-      warning (1, "Sector #%lu not found in snapshot file", sec);
+      warning (1, "Sector #" LU_FMT " not found in snapshot file", sec);
       return FALSE;
     }
 
