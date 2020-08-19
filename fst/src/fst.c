@@ -24,6 +24,9 @@ Boston, MA 02111-1307, USA.  */
 #define INCL_DOSNLS
 #include <os2.h>
 #endif
+#ifdef OS2_EMULATE
+#include "os2.h"
+#endif
 #ifdef WINDOWS
 #include <windows.h>
 #endif
@@ -414,7 +417,7 @@ const char *format_string (const unsigned char *s, size_t n, int zero_term)
 
 /* Format the name of the extended attribute pointed to by PFEA. */
 
-#ifdef OS2
+#if defined(OS2) || defined(OS2_EMULATE)
 const char *format_ea_name (const FEA *pfea)
 {
   return format_string ((const unsigned char *)pfea + sizeof (FEA),
