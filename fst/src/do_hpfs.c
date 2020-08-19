@@ -22,7 +22,7 @@ Boston, MA 02111-1307, USA.  */
 #define INCL_DOSDEVIOCTL
 #define INCL_DOSNLS
 #define INCL_DOSERRORS
-#include <os2.h>
+#include "os2.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -68,7 +68,7 @@ typedef struct
 } EXTENTS;
 
 static ULONG total_sectors;     /* Total number of sectors of HPFS volume */
-static ULONG total_alloc;       /* # of bytes allocated for ïalloc_vector' */
+static ULONG total_alloc;       /* # of bytes allocated for ï¿½alloc_vector' */
 static BYTE *usage_vector;      /* One byte per sector, indicating usage */
 static BYTE *seen_vector;       /* One byte per sector, to avoid loops */
 static BYTE *alloc_vector;      /* One bit per sector, indicating allocation */

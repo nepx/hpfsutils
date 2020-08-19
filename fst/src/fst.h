@@ -23,10 +23,12 @@ Boston, MA 02111-1307, USA.  */
 #ifndef __EPOC32__
 #include <endian.h>
 #endif
+#include <stdint.h>
 typedef unsigned char BYTE;
 typedef unsigned char UCHAR;
 typedef unsigned short USHORT;
-typedef unsigned long ULONG;
+//typedef unsigned long ULONG;
+typedef uint32_t ULONG; // fst expects it to be 32-bit
 #define FALSE 0
 #define TRUE  1
 #endif
