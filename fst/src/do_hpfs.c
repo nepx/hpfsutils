@@ -39,6 +39,9 @@ Boston, MA 02111-1307, USA.  */
 
 #define ALLOCATED(x)    !BITSETP (alloc_vector, (x))
 
+ULONG DosMapCase (ULONG ulLength, const PCOUNTRYCODE pCountryCode, PCHAR pchString) {
+    return ERROR_NLS_NO_COUNTRY_FILE;
+}
 
 /* Our own representation of a code page. */
 

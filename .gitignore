@@ -2,5 +2,10 @@ hpfsimg
 inspect
 mkhpfs
 
+fst/unix/copyover
+fst/unix/copyover*
+fst/unix/fst
+fst/unix/fst*
+
 *.exe
 *.o

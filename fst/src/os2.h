@@ -563,7 +563,7 @@ CHAR achName[CCHMAXPATHCOMP];
 } FILEFINDBUF;
 typedef FILEFINDBUF *PFILEFINDBUF;
 
-#pragma packed(2)
+//#pragma packed(2)
 
 typedef struct
 {
@@ -580,10 +580,10 @@ USHORT attrFile;
 ULONG cbList;
 UCHAR cchName;
 CHAR achName[CCHMAXPATHCOMP];
-} FILEFINDBUF2;
+} FILEFINDBUF2 __attribute((packed));
 typedef FILEFINDBUF2 *PFILEFINDBUF2;
 
-#pragma pack(4)
+//#pragma pack(4)
 
 typedef struct
 {
@@ -1170,7 +1170,7 @@ PVOID pData, ULONG ulPriority);
 #define XCPT_ASYNC_PROCESS_TERMINATE 0xc0010002
 #define XCPT_SIGNAL 0xc0010003
 
-#pragma packed(2)
+//#pragma packed(2)
 
 typedef struct
 {
@@ -1203,7 +1203,7 @@ ULONG ctx_RegEsp;
 ULONG ctx_SegSs;
 } CONTEXTRECORD;
 typedef CONTEXTRECORD *PCONTEXTRECORD;
-#pragma packed(4)
+//#pragma packed(4)
 
 #define EXCEPTION_MAXIMUM_PARAMETERS 4
 
