@@ -1,0 +1,6 @@
+hpfsimg
+inspect
+mkhpfs
+
+*.exe
+*.o
