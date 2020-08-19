@@ -27,8 +27,17 @@ Boston, MA 02111-1307, USA.  */
 typedef unsigned char BYTE;
 typedef unsigned char UCHAR;
 typedef unsigned short USHORT;
-//typedef unsigned long ULONG;
-typedef uint32_t ULONG; // fst expects it to be 32-bit
+#if ULONG_MAX != 4294967295
+typedef unsigned int ULONG;
+#define LU_FMT "%u"
+#define LU_8X_FMT "%.8x"
+#define LX_FMT "%x"
+#else
+#define LU_FMT "%lu"
+#define LU_8X_FMT "%.8lx"
+#define LX_FMT "%lx"
+typedef unsigned long ULONG;
+#endif
 #define FALSE 0
 #define TRUE  1
 #endif

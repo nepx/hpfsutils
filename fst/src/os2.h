@@ -580,7 +580,7 @@ USHORT attrFile;
 ULONG cbList;
 UCHAR cchName;
 CHAR achName[CCHMAXPATHCOMP];
-} FILEFINDBUF2 __attribute((packed));
+} FILEFINDBUF2;
 typedef FILEFINDBUF2 *PFILEFINDBUF2;
 
 //#pragma pack(4)

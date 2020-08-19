@@ -88,7 +88,7 @@ const char *dst_fat_path;       /* Path name of target file for FAT or NULL */
 ULONG src_fat_number;           /* Source FAT number if src_fat_path is NULL */
 ULONG dst_fat_number;           /* Target FAT number if dst_fat_path is NULL */
 const char *get_name;           /* Name for `get' and `set' */
-const char *get_format;         /* "0x%lx\n" for `get -x', "%ld\n" for `get' */
+const char *get_format;         /* "0x" LX_FMT "\n" for `get -x', "%ld\n" for `get' */
 const char *set_string;         /* String value for `set' */
 ULONG set_ulong;                /* ULONG value for `set' */
 struct change *changes;         /* Chain of changes for `set-data' */
@@ -149,7 +149,7 @@ void quit (int rc, int show)
 }
 
 
-/* Treat `#%lu' in FMT as format specifiers for sector numbers.  We
+/* Treat `#" LU_FMT "' in FMT as format specifiers for sector numbers.  We
    cannot introduce our own format specifier (such as `%N') because
    that would cause loads of GCC warnings or we would loose checking
    of format strings. */
@@ -177,7 +177,7 @@ static void adjust_format_string (char *dst, const char *src)
 }
 
 
-/* Like vfprintf(), but treat #%lu specially (sector number).  Return
+/* Like vfprintf(), but treat #" LU_FMT " specially (sector number).  Return
    the number of characters printed. */
 
 int my_vfprintf (FILE *f, const char *fmt, va_list arg_ptr)
@@ -189,7 +189,7 @@ int my_vfprintf (FILE *f, const char *fmt, va_list arg_ptr)
 }
 
 
-/* Like fprintf(), but treat #%lu specially (sector number).  Return
+/* Like fprintf(), but treat #" LU_FMT " specially (sector number).  Return
    the number of characters printed. */
 
 int my_fprintf (FILE *f, const char *fmt, ...)
@@ -204,7 +204,7 @@ int my_fprintf (FILE *f, const char *fmt, ...)
 }
 
 
-/* Like vsprintf(), but treat #%lu specially (sector number).  Return
+/* Like vsprintf(), but treat #" LU_FMT " specially (sector number).  Return
    the number of characters printed. */
 
 int my_vsprintf (char *buf, const char *fmt, va_list arg_ptr)
@@ -216,7 +216,7 @@ int my_vsprintf (char *buf, const char *fmt, va_list arg_ptr)
 }
 
 
-/* Like sprintf(), but treat #%lu specially (sector number).  Return
+/* Like sprintf(), but treat #" LU_FMT " specially (sector number).  Return
    the number of characters printed. */
 
 int my_sprintf (char *buf, const char *fmt, ...)
@@ -367,12 +367,12 @@ const char *format_sector_range (ULONG start, ULONG count)
 
   if (count == 1)
     {
-      adjust_format_string (fmt, "sector #%lu");
+      adjust_format_string (fmt, "sector #" LU_FMT "");
       sprintf (buf, fmt, start);
     }
   else
     {
-      adjust_format_string (fmt, "%lu sectors #%lu-#%lu");
+      adjust_format_string (fmt, "" LU_FMT " sectors #" LU_FMT "-#" LU_FMT "");
       sprintf (buf, fmt, count, start, start + count - 1);
     }
   return buf;
@@ -661,7 +661,7 @@ static void do_disk (DISKIO *d)
         info ("  Sectors:                  %u\n",
               READ_USHORT (&boot.boot.sectors));
       else
-        info ("  Sectors:                  %lu\n",
+        info ("  Sectors:                  " LU_FMT "\n",
               READ_ULONG (&boot.boot.large_sectors));
       info ("  Media descriptor:         0x%x\n",
             boot.boot.media);
@@ -677,13 +677,13 @@ static void do_disk (DISKIO *d)
           && READ_ULONG (&boot.boot.r.fat32.sectors_per_fat) != 0)
         {
           /* FAT32 */
-          info ("  FAT32 sectors per FAT:    %lu\n",
+          info ("  FAT32 sectors per FAT:    " LU_FMT "\n",
                 READ_ULONG (&boot.boot.r.fat32.sectors_per_fat));
           info ("  FAT32 flags:              0x%.4x\n",
                 READ_USHORT (&boot.boot.r.fat32.flags));
           info ("  FAT32 version:            %u.%u\n",
                 boot.boot.r.fat32.version[0], boot.boot.r.fat32.version[1]);
-          info ("  FAT32 root dir cluster:   %lu\n",
+          info ("  FAT32 root dir cluster:   " LU_FMT "\n",
                 READ_ULONG (&boot.boot.r.fat32.root_cluster));
           info ("  FAT32 info sector:        %u\n",
                 READ_USHORT (&boot.boot.r.fat32.info_sector));
@@ -700,7 +700,7 @@ static void do_disk (DISKIO *d)
           if (boot.boot.r.fat.extended_sig == 40
               || boot.boot.r.fat.extended_sig == 41)
             {
-              info ("  Volume ID:                0x%.8lx\n",
+              info ("  Volume ID:                0x" LU_8X_FMT "\n",
                     READ_ULONG (&boot.boot.r.fat.vol_id));
               info ("  Volume label:             %s\n",
                     format_string (boot.boot.r.fat.vol_label, 11, TRUE));
@@ -802,7 +802,8 @@ static void usage (void)
         "fst is free software, and you are welcome to redistribute it\n"
         "under certain conditions. See the file `COPYING' for details.\n");
   fputs ("Type RETURN to continue: ", stdout); fflush (stdout);
-  fgets (buf, sizeof (buf), stdin);
+  char* x =fgets (buf, sizeof (buf), stdin);
+  if(x){};
 
   puts ("\nUsage:\n"
         "  fst [<fst_options>] <action> [<action_options>] <arguments>\n"
@@ -1130,7 +1131,7 @@ static void cmd_info (int argc, char *argv[])
 
   if (a_what && !what_cluster_flag
       && diskio_cyl_head_sec (d, &chs, what_sector))
-    info ("Sector #%lu: Cylinder %lu, head %lu, sector %lu\n",
+    info ("Sector #" LU_FMT ": Cylinder " LU_FMT ", head " LU_FMT ", sector " LU_FMT "\n",
           what_sector, chs.cyl, chs.head, chs.sec);
 
   do_disk (d);
@@ -1243,16 +1244,16 @@ static void diff_sectors (DISKIO *d1, DISKIO *d2,
               read_sec (d1, raw1, *p1, 1, FALSE);
               read_sec (d2, raw2, *p1, 1, FALSE);
               if (memcmp (raw1, raw2, 512) != 0)
-                list ("#%lu", *p1);
+                list ("#" LU_FMT "", *p1);
             }
           break;
         case 1:
           if (cmp < 0)
-            list ("#%lu", *p1);
+            list ("#" LU_FMT "", *p1);
           break;
         case 2:
           if (cmp > 0)
-            list ("#%lu", *p2);
+            list ("#" LU_FMT "", *p2);
           break;
         }
       if (cmp <= 0)
@@ -1288,7 +1289,7 @@ static void compare_sectors_array (DISKIO *d1, DISKIO *d2, ULONG *array,
           ok1 = crc_sec (d1, &crc1, secno);
           ok2 = crc_sec (d2, &crc2, secno);
           if (ok1 && ok2 && crc1 != crc2)
-            list ("#%lu", secno);
+            list ("#" LU_FMT "", secno);
         }
     }
   else
@@ -1301,7 +1302,7 @@ static void compare_sectors_array (DISKIO *d1, DISKIO *d2, ULONG *array,
           read_sec (d1, raw1, secno, 1, FALSE);
           read_sec (d2, raw2, secno, 1, FALSE);
           if (memcmp (raw1, raw2, 512) != 0)
-            list ("#%lu", secno);
+            list ("#" LU_FMT "", secno);
         }
     }
   list_end ();
@@ -1309,7 +1310,7 @@ static void compare_sectors_array (DISKIO *d1, DISKIO *d2, ULONG *array,
     {
       list_start ("Missing sectors in source %d:", n1 == 0 ? 2 : 1);
       for (; idx < n; ++idx)
-        list ("#%lu", array[idx]);
+        list ("#" LU_FMT "", array[idx]);
       list_end ();
     }
 }
@@ -1339,7 +1340,7 @@ static void compare_sectors_all (DISKIO *d1, DISKIO *d2)
           ok1 = crc_sec (d1, &crc1, secno);
           ok2 = crc_sec (d2, &crc2, secno);
           if (ok1 && ok2 && crc1 != crc2)
-            list ("#%lu", secno);
+            list ("#" LU_FMT "", secno);
         }
     }
   else
@@ -1349,7 +1350,7 @@ static void compare_sectors_all (DISKIO *d1, DISKIO *d2)
           read_sec (d1, raw1, secno, 1, FALSE);
           read_sec (d2, raw2, secno, 1, FALSE);
           if (memcmp (raw1, raw2, 512) != 0)
-            list ("#%lu", secno);
+            list ("#" LU_FMT "", secno);
         }
     }
   list_end ();
@@ -1557,7 +1558,7 @@ static void cmd_restore (int argc, char *argv[])
     }
   else
     {
-      fprintf (prog_file, "Done, %lu sectors not written\n", bad);
+      fprintf (prog_file, "Done, " LU_FMT " sectors not written\n", bad);
       quit (2, FALSE);
     }
 }
@@ -1641,7 +1642,7 @@ static void cmd_read (int argc, char *argv[])
     {
       secno = 0;
       count = diskio_total_sectors (d);
-      info ("Reading %lu sector%s\n", count, (count != 1) ? "s" : "");
+      info ("Reading " LU_FMT " sector%s\n", count, (count != 1) ? "s" : "");
     }
   else
     {
@@ -1727,7 +1728,7 @@ static void cmd_write (int argc, char *argv[])
   if (all)
     {
       count = size / force_sector_size;
-      info ("Writing %lu sector%s\n", count, (count != 1) ? "s" : "");
+      info ("Writing " LU_FMT " sector%s\n", count, (count != 1) ? "s" : "");
     }
   else if ((ULONG)size < force_sector_size * count)
     error ("The source file is too short");
@@ -1786,7 +1787,7 @@ static void cmd_crc (int argc, char *argv[])
     {
       crc_t tmp;
       if (!crc_sec (d, &tmp, secno))
-        warning (1, "Sector #%lu not readable", secno);
+        warning (1, "Sector #" LU_FMT " not readable", secno);
       WRITE_ULONG (&acrc[secno], tmp);
     }
   if (fwrite (acrc, sizeof (*acrc), n, save_file) != n)
@@ -1881,7 +1882,7 @@ static void cmd_get (int argc, char *argv[])
   while (i < argc)
     if (strcmp (argv[i], "-x") == 0)
       {
-        get_format = "0x%lx\n"; ++i;
+        get_format = "0x" LX_FMT "\n"; ++i;
       }
     else
       break;
@@ -2078,11 +2079,11 @@ static void cmd_set_data (int argc, char *argv[])
         while (s != NULL)
           {
             if (s->type == ST_SUCCESSIVE)
-              printf ("  %lu at %lu\n", s->count, s->cluster);
+              printf ("  " LU_FMT " at " LU_FMT "\n", s->count, s->cluster);
             else if (s->type == ST_UNUSED)
-              printf ("  %lu unused at %lu\n", s->count, s->cluster);
+              printf ("  " LU_FMT " unused at " LU_FMT "\n", s->count, s->cluster);
             else if (s->type == ST_ALL_UNUSED)
-              printf ("  all unused at %lu\n", s->cluster);
+              printf ("  all unused at " LU_FMT "\n", s->cluster);
             else
               abort ();
             s = s->next;

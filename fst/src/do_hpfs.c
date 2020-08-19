@@ -141,12 +141,12 @@ static const char *format_time (ULONG x)
   if (x == 0)
     strcpy (buf, "never");
   else if (x < min_time)
-    sprintf (buf, "0x%lx", x);
+    sprintf (buf, "0x" LX_FMT "", x);
   else
     {
       t = (time_t)x;
       tm = gmtime (&t);
-      sprintf (buf, "0x%lx (%d-%.2d-%.2d %.2d:%.2d:%.2d)",
+      sprintf (buf, "0x" LX_FMT " (%d-%.2d-%.2d %.2d:%.2d:%.2d)",
                x, tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday,
                tm->tm_hour, tm->tm_min, tm->tm_sec);
     }
@@ -281,7 +281,7 @@ static void extents_show (const EXTENTS *e, const char *msg)
   info ("--------+-------\n");
   for (i = 0; i < e->size; ++i)
     if (e->counts[i] != 0)
-      info ("%7lu | %lu\n", i, e->counts[i]);
+      info ("%7lu | " LU_FMT "\n", i, e->counts[i]);
 }
 
 
@@ -309,7 +309,7 @@ static int have_seen (ULONG secno, ULONG count, BYTE what, const char *msg)
     if (seen_vector[secno] & what)
       {
         seen = TRUE;
-        warning (1, "Sector #%lu already used for %s", secno, msg);
+        warning (1, "Sector #" LU_FMT " already used for %s", secno, msg);
       }
     else
       seen_vector[secno] |= what;
@@ -421,10 +421,10 @@ static void use_sectors (ULONG secno, ULONG count, BYTE what,
       if (secno >= total_sectors)
         {
           if (path == NULL)
-            warning (1, "Sector number #%lu (%s) is too big",
+            warning (1, "Sector number #" LU_FMT " (%s) is too big",
                      secno, sec_usage (what));
           else
-            warning (1, "Sector number #%lu (%s for \"%s\") is too big",
+            warning (1, "Sector number #" LU_FMT " (%s for \"%s\") is too big",
                      secno, sec_usage (what), format_path_chain (path, NULL));
         }
       else
@@ -443,7 +443,7 @@ static void use_sectors (ULONG secno, ULONG count, BYTE what,
                    && (old == USE_SPAREDIRBLK || old == USE_BANDDIRBLK))
               && !(what == USE_CPDATASEC && old == USE_CPDATASEC))
             {
-              warning (1, "Sector #%lu usage conflict: %s vs. %s",
+              warning (1, "Sector #" LU_FMT " usage conflict: %s vs. %s",
                        secno, sec_usage (usage_vector[secno]),
                        sec_usage (what));
 
@@ -469,7 +469,7 @@ static void use_sectors (ULONG secno, ULONG count, BYTE what,
 
           if (alloc_ready && !ALLOCATED (secno))
             {
-              warning (1, "Sector #%lu used (%s) but not marked as allocated",
+              warning (1, "Sector #" LU_FMT " used (%s) but not marked as allocated",
                        secno, sec_usage (what));
               if (path != NULL)
                 warning_cont ("File: \"%s\"",
@@ -501,15 +501,15 @@ static void do_bad (DISKIO *d, ULONG secno, ULONG total)
     {
       if (a_info)
         {
-          info ("Sectors #%lu-#%lu: Bad block list\n", secno, secno+3);
-          info ("  Sector number of next bad block: #%lu\n", list[0]);
+          info ("Sectors #" LU_FMT "-#" LU_FMT ": Bad block list\n", secno, secno+3);
+          info ("  Sector number of next bad block: #" LU_FMT "\n", list[0]);
         }
       else if (a_what && IN_RANGE (what_sector, secno, 4))
         {
-          info ("Sector #%lu: Bad block list (+%lu)\n",
+          info ("Sector #" LU_FMT ": Bad block list (+" LU_FMT ")\n",
                 what_sector, what_sector - secno);
           if (secno + 0 == what_sector)
-            info ("  Next sector in list: #%lu\n", list[0]);
+            info ("  Next sector in list: #" LU_FMT "\n", list[0]);
           what_index = (secno - what_sector) / 4;
         }
       if (have_seen (secno, 4, SEEN_BADLIST, "bad block list"))
@@ -521,9 +521,9 @@ static void do_bad (DISKIO *d, ULONG secno, ULONG total)
           {
             ++used;
             if (a_info || (a_what && IN_RANGE (i, what_index, 512/4)))
-              info ("  Bad sector: #%lu\n", list[i]);
+              info ("  Bad sector: #" LU_FMT "\n", list[i]);
             else if (a_what && list[i] == what_sector)
-              info ("Sector #%lu: Bad sector\n", list[i]);
+              info ("Sector #" LU_FMT ": Bad sector\n", list[i]);
             use_sectors (list[i], 1, USE_BAD, NULL);
           }
       secno = list[0];
@@ -553,9 +553,9 @@ static void do_hotfix_list (DISKIO *d, ULONG secno, ULONG total)
       total = 512 / 3;
     }
   if (a_info)
-    info ("Sectors #%lu-#%lu: Hotfix list\n", secno, secno + 3);
+    info ("Sectors #" LU_FMT "-#" LU_FMT ": Hotfix list\n", secno, secno + 3);
   else if (a_what && IN_RANGE (what_sector, secno, 4))
-    info ("Sector #%lu: Hotfix list (+%lu)\n",
+    info ("Sector #" LU_FMT ": Hotfix list (+" LU_FMT ")\n",
           what_sector, what_sector - secno);
   use_sectors (secno, 4, USE_HOTFIXLIST, NULL);
   read_sec (d, list, secno, 4, TRUE);
@@ -565,28 +565,28 @@ static void do_hotfix_list (DISKIO *d, ULONG secno, ULONG total)
       if (hsecno == 0)
         warning (1, "Hotfix sector number is zero");
       else if (hsecno >= total_sectors)
-        warning (1, "Hotfix sector number #%lu is too big", hsecno);
+        warning (1, "Hotfix sector number #" LU_FMT " is too big", hsecno);
       else if (usage_vector[hsecno] == USE_EMPTY)
         {
           if (a_info)
-            info ("  Hotfix sector: #%lu for #%lu, FNODE #%lu\n",
+            info ("  Hotfix sector: #" LU_FMT " for #" LU_FMT ", FNODE #" LU_FMT "\n",
                   hsecno, list[i], list[i+2*total]);
           if (a_what && hsecno == what_sector)
-            info ("Sector #%lu: Hotfix sector for #%lu, FNODE #%lu\n",
+            info ("Sector #" LU_FMT ": Hotfix sector for #" LU_FMT ", FNODE #" LU_FMT "\n",
                   hsecno, list[i], list[i+2*total]);
           use_sectors (hsecno, 1, USE_HOTFIX, NULL);
           if (alloc_vector != NULL && !ALLOCATED (hsecno))
-            warning (1, "Hotfix sector #%lu not marked as allocated", hsecno);
+            warning (1, "Hotfix sector #" LU_FMT " not marked as allocated", hsecno);
         }
     }
   if (a_what && IN_RANGE (what_sector, secno, 4))
     {
       for (i = 0; i < total; ++i)
         if (list[i] != 0 && what_sector == secno + i / (512 / 4))
-          info ("  Bad sector: #%lu\n", list[i]);
+          info ("  Bad sector: #" LU_FMT "\n", list[i]);
       for (i = 0; i < total; ++i)
         if (what_sector == secno + (i + total) / (512 / 4))
-          info ("  Hotfix sector: #%lu\n", list[i+total]);
+          info ("  Hotfix sector: #" LU_FMT "\n", list[i+total]);
     }
 }
 
@@ -633,7 +633,7 @@ static void do_free_frag (void)
       count = 0;
       for (k = start; k < end; ++k)
         count += counts[k];
-      info (" %5lu-%-5lu  | %lu\n", start, end - 1, count);
+      info (" %5lu-%-5lu  | " LU_FMT "\n", start, end - 1, count);
     }
   info ("\n");
 }
@@ -644,9 +644,9 @@ static void do_free_frag (void)
 static void do_bitmap_show (ULONG start, ULONG count)
 {
   if (count == 1)
-    info ("  Unallocated: 1 sector #%lu\n", start);
+    info ("  Unallocated: 1 sector #" LU_FMT "\n", start);
   else
-    info ("  Unallocated: %lu sectors #%lu-#%lu\n",
+    info ("  Unallocated: " LU_FMT " sectors #" LU_FMT "-#" LU_FMT "\n",
           count, start, start + count - 1);
 }
 
@@ -691,10 +691,10 @@ static void do_bitmap (DISKIO *d, ULONG secno, ULONG band, int show)
   ULONG pos, total, first_sec, rel_sec;
 
   if (a_info || show)
-    info ("Bitmap for band %lu is in sectors #%lu-#%lu\n",
+    info ("Bitmap for band " LU_FMT " is in sectors #" LU_FMT "-#" LU_FMT "\n",
           band, secno, secno + 3);
   if (a_what && IN_RANGE (what_sector, secno, 4))
-    info ("Sector #%lu: Bitmap for band %lu (+%lu)\n",
+    info ("Sector #" LU_FMT ": Bitmap for band " LU_FMT " (+" LU_FMT ")\n",
           what_sector, band, what_sector - secno);
   use_sectors (secno, 4, USE_BITMAP, NULL);
   read_sec (d, bitmap, secno, 4, TRUE);
@@ -710,7 +710,7 @@ static void do_bitmap (DISKIO *d, ULONG secno, ULONG band, int show)
   if (a_info && show_unused)
     {
       total = do_bitmap2 (bitmap, first_sec, 2048 * 8);
-      info ("  Unallocated sectors in band %lu: %lu\n", band, total);
+      info ("  Unallocated sectors in band " LU_FMT ": " LU_FMT "\n", band, total);
     }
   else if (a_what && IN_RANGE (what_sector, secno, 4))
     do_bitmap2 (bitmap + (what_sector - secno) * 512,
@@ -719,8 +719,8 @@ static void do_bitmap (DISKIO *d, ULONG secno, ULONG band, int show)
   if (a_what && IN_RANGE (what_sector, first_sec, 2048 * 8))
     {
       rel_sec = what_sector - first_sec;
-      info ("Allocation bit for sector #%lu (%s) is in sector #%lu,\n"
-            "  byte 0x%lx, bit %lu\n",
+      info ("Allocation bit for sector #" LU_FMT " (%s) is in sector #" LU_FMT ",\n"
+            "  byte 0x" LX_FMT ", bit " LU_FMT "\n",
             what_sector,
             (BITSETP (bitmap, rel_sec) ? "unallocated" : "allocated"),
             secno + rel_sec / (512 * 8),
@@ -740,10 +740,10 @@ static void do_bitmap_indirect (DISKIO *d, ULONG secno)
   bands = DIVIDE_UP (total_sectors, 2048 * 8);
   blocks = DIVIDE_UP (bands, 512);
   if (a_info)
-    info ("Sectors #%lu-#%lu: Bitmap indirect block\n",
+    info ("Sectors #" LU_FMT "-#" LU_FMT ": Bitmap indirect block\n",
           secno, secno + 4 * blocks - 1);
   else if (a_what && IN_RANGE (what_sector, secno, 4 * blocks))
-    info ("Sector #%lu: Bitmap indirect block (+%lu)\n",
+    info ("Sector #" LU_FMT ": Bitmap indirect block (+" LU_FMT ")\n",
           what_sector, what_sector - secno);
   use_sectors (secno, 4 * blocks, USE_BITMAPIND, NULL);
   list = xmalloc (2048 * blocks);
@@ -753,8 +753,8 @@ static void do_bitmap_indirect (DISKIO *d, ULONG secno)
       bsecno = list[i];
       if (bsecno == 0)
         {
-          warning (1, "Bitmap indirect block starting at #%lu: "
-                   "Entry %lu is zero", secno, i);
+          warning (1, "Bitmap indirect block starting at #" LU_FMT ": "
+                   "Entry " LU_FMT " is zero", secno, i);
           break;
         }
       do_bitmap (d, bsecno, i,
@@ -765,7 +765,7 @@ static void do_bitmap_indirect (DISKIO *d, ULONG secno)
       for (i = bands; i < blocks * 512; ++i)
         if (list[i] != 0)
           {
-            warning (1, "Bitmap indirect block starting at #%lu: "
+            warning (1, "Bitmap indirect block starting at #" LU_FMT ": "
                      "Too many entries", secno);
             break;
           }
@@ -792,16 +792,16 @@ static void do_bitmap_indirect (DISKIO *d, ULONG secno)
       resvd = total_sectors / 50;
       if (resvd > 4096) resvd = 4096;
       if (a_info)
-        info ("Number of reserved sectors:    %lu (%lu used)\n",
+        info ("Number of reserved sectors:    " LU_FMT " (" LU_FMT " used)\n",
               resvd, resvd > nfree ? resvd - nfree : 0);
       if (resvd > nfree)
         {
           if (a_check)
-            warning (0, "Reserved sectors are in used (%lu)", resvd - nfree);
+            warning (0, "Reserved sectors are in used (" LU_FMT ")", resvd - nfree);
           resvd = 0;
         }
       if (a_info)
-        info ("Number of unallocated sectors: %lu (%lu available)\n",
+        info ("Number of unallocated sectors: " LU_FMT " (" LU_FMT " available)\n",
               nfree, nfree - resvd);
     }
   if (alloc_vector != NULL)
@@ -869,7 +869,7 @@ static void do_cpdata (ULONG secno, const CPDATAENTRY *pd, ULONG len,
   if (!no_country_sys)
     {
       if (rc != 0)
-        warning (1, "DosMapCase failed for %lu/%lu, rc=%lu",
+        warning (1, "DosMapCase failed for " LU_FMT "/" LU_FMT ", rc=" LU_FMT "",
                  cc.country, cc.codepage, rc);
       else
         {
@@ -886,14 +886,14 @@ static void do_cpdata (ULONG secno, const CPDATAENTRY *pd, ULONG len,
 
           if (diffs != 0 && (check_pedantic || diffs > 2))
             warning (diffs > 2 ? 1 : 0,
-                     "CPDATASEC #%lu: Case mapping table does not match "
-                     "DosMapCase for %lu/%lu (%lu difference%s)",
+                     "CPDATASEC #" LU_FMT ": Case mapping table does not match "
+                     "DosMapCase for " LU_FMT "/" LU_FMT " (" LU_FMT " difference%s)",
                      secno, cc.country, cc.codepage, diffs,
                      diffs == 1 ? "" : "s");
         }
       rc = DosQueryDBCSEnv (sizeof (dbcs), &cc, (PCHAR)&dbcs);
       if (rc != 0)
-        warning (1, "DosQueryDBCSEnv failed for %lu/%lu, rc=%lu",
+        warning (1, "DosQueryDBCSEnv failed for " LU_FMT "/" LU_FMT ", rc=" LU_FMT "",
                  cc.country, cc.codepage, rc);
       else
         {
@@ -901,18 +901,18 @@ static void do_cpdata (ULONG secno, const CPDATAENTRY *pd, ULONG len,
             if (dbcs[2*i+0] == 0 && dbcs[2*i+1] == 0)
               break;
           if (i != READ_USHORT (&pd->cDBCSRange))
-            warning (1, "CPDATASEC #%lu: Number of DBCS ranges does not match "
-                     "DosQueryDBCSEnv for %lu/%lu",
+            warning (1, "CPDATASEC #" LU_FMT ": Number of DBCS ranges does not match "
+                     "DosQueryDBCSEnv for " LU_FMT "/" LU_FMT "",
                      secno, cc.country, cc.codepage);
           else if (memcmp (dbcs, (const char *)pd->DBCSRange, 2 * i) != 0)
-            warning (1, "CPDATASEC #%lu: DBCS ranges does not match "
-                     "DosQueryDBCSEnv for %lu/%lu",
+            warning (1, "CPDATASEC #" LU_FMT ": DBCS ranges does not match "
+                     "DosQueryDBCSEnv for " LU_FMT "/" LU_FMT "",
                      secno, cc.country, cc.codepage);
         }
     }
   cs2 = chksum ((const BYTE *)pd, len);
   if (cs != cs2)
-    warning (1, "CPDATASEC #%lu: Incorrect checksum for %lu/%lu",
+    warning (1, "CPDATASEC #" LU_FMT ": Incorrect checksum for " LU_FMT "/" LU_FMT "",
              secno, cc.country, cc.codepage);
 }
 
@@ -933,18 +933,18 @@ static void do_cpdatasec (DISKIO *d, ULONG di)
       return;
   cpdata_visited[cpdata_count++] = secno;
   if (a_info || (a_what && secno == what_sector))
-    info ("Sector #%lu: Code page data sector\n", secno);
+    info ("Sector #" LU_FMT ": Code page data sector\n", secno);
   use_sectors (secno, 1, USE_CPDATASEC, NULL);
   read_sec (d, &cpdatasec, secno, 1, TRUE);
   if (READ_ULONG (&cpdatasec.cpdatasec.sig) != CPDATA_SIG1)
     {
-      warning (1, "CPDATASEC #%lu: Bad signature", secno);
+      warning (1, "CPDATASEC #" LU_FMT ": Bad signature", secno);
       return;
     }
   dcount = READ_USHORT (&cpdatasec.cpdatasec.cCodePage);
   if (dcount > 3)
     {
-      warning (1, "CPDATASEC #%lu: Too many code pages", secno);
+      warning (1, "CPDATASEC #" LU_FMT ": Too many code pages", secno);
       dcount = 3;
     }
   memset (used, FALSE, 512);
@@ -952,7 +952,7 @@ static void do_cpdatasec (DISKIO *d, ULONG di)
     {
       index = READ_USHORT (&cpdatasec.cpdatasec.iFirstCP) + j;
       if (index >= code_page_count)
-        warning (1, "CPDATASEC #%lu: Index too big", secno);
+        warning (1, "CPDATASEC #" LU_FMT ": Index too big", secno);
       else
         {
           code_pages[index].hit = TRUE;
@@ -965,28 +965,28 @@ static void do_cpdatasec (DISKIO *d, ULONG di)
             code_pages[index].case_map[c] = (BYTE)toupper (c);
           if (READ_ULONG (&cpdatasec.cpdatasec.cksCP[j])
               != READ_ULONG (&code_pages[index].info.cksCP))
-            warning (1, "CPDATASEC #%lu: Wrong checksum for code page %lu",
+            warning (1, "CPDATASEC #" LU_FMT ": Wrong checksum for code page " LU_FMT "",
                      secno, index);
           offset = READ_USHORT (&cpdatasec.cpdatasec.offCPData[j]);
           len = sizeof (CPDATAENTRY) - sizeof (DBCSRG);
           if (offset < sizeof (cpdatasec.cpdatasec) || offset + len > 512)
-            warning (1, "CPDATASEC #%lu: Invalid offset: %lu", secno, offset);
+            warning (1, "CPDATASEC #" LU_FMT ": Invalid offset: " LU_FMT "", secno, offset);
           else
             {
               pd = (const CPDATAENTRY *)(cpdatasec.raw + offset);
               if (READ_USHORT (&pd->cDBCSRange)
                   != READ_USHORT (&code_pages[index].info.cDBCSRange))
-                warning (1, "CPDATASEC #%lu: Incorrect number of DBCS ranges",
+                warning (1, "CPDATASEC #" LU_FMT ": Incorrect number of DBCS ranges",
                          secno);
               else
                 {
                   len += ((READ_USHORT (&pd->cDBCSRange) + 1)
                           * sizeof (DBCSRG));
                   if (offset + len > 512)
-                    warning (1, "CPDATASEC #%lu: Invalid offset: %lu",
+                    warning (1, "CPDATASEC #" LU_FMT ": Invalid offset: " LU_FMT "",
                              secno, offset);
                   else if (memchr (used + offset, TRUE, len) != NULL)
-                    warning (1, "CPDATASEC #%lu: Overlapping data", secno);
+                    warning (1, "CPDATASEC #" LU_FMT ": Overlapping data", secno);
                   else
                     {
                       memset (used + offset, TRUE, len);
@@ -1016,22 +1016,22 @@ static int do_one_cpinfosec (DISKIO *d, ULONG *psecno, ULONG *pcount)
 
   secno = *psecno;
   if (a_info || (a_what && secno == what_sector))
-    info ("Sector #%lu: Code page information sector\n", secno);
+    info ("Sector #" LU_FMT ": Code page information sector\n", secno);
   if (have_seen (secno, 1, SEEN_CPINFOSEC, "code page information"))
     return FALSE;
   use_sectors (secno, 1, USE_CPINFOSEC, NULL);
   read_sec (d, &cpinfosec, secno, 1, TRUE);
   if (READ_ULONG (&cpinfosec.cpinfosec.sig) != CPINFO_SIG1)
     {
-      warning (1, "CPINFOSEC #%lu: Bad signature", secno);
+      warning (1, "CPINFOSEC #" LU_FMT ": Bad signature", secno);
       return FALSE;
     }
   if (READ_ULONG (&cpinfosec.cpinfosec.iFirstCP) != *pcount)
-    warning (1, "CPINFOSEC #%lu: Wrong code page index", secno);
+    warning (1, "CPINFOSEC #" LU_FMT ": Wrong code page index", secno);
   n = READ_ULONG (&cpinfosec.cpinfosec.cCodePage);
   if (n > 31)
     {
-      warning (1, "CPINFOSEC #%lu: Too many code pages", secno);
+      warning (1, "CPINFOSEC #" LU_FMT ": Too many code pages", secno);
       n = 31;
     }
   for (i = 0; i < n; ++i)
@@ -1040,11 +1040,11 @@ static int do_one_cpinfosec (DISKIO *d, ULONG *psecno, ULONG *pcount)
       code_pages[*pcount].info = *pi;
       code_pages[*pcount].hit = FALSE;
       if (a_info || (a_what && what_sector == secno))
-        info ("  Code page index %lu: code page %u, country %u\n",
+        info ("  Code page index " LU_FMT ": code page %u, country %u\n",
               i, READ_USHORT (&pi->usCodePageID),
               READ_USHORT (&pi->usCountryCode));
       if (READ_USHORT (&pi->iCPVol) != *pcount)
-        warning (1, "CPINFOSEC #%lu: Incorrect index", secno);
+        warning (1, "CPINFOSEC #" LU_FMT ": Incorrect index", secno);
       ++*pcount;
     }
   next = READ_ULONG (&cpinfosec.cpinfosec.lsnNext);
@@ -1082,7 +1082,7 @@ static void do_cpinfosec (DISKIO *d, ULONG secno)
 
   for (i = 0; i < code_page_count; ++i)
     if (!code_pages[i].hit)
-      warning (1, "No code page data for code page index %lu", i);
+      warning (1, "No code page data for code page index " LU_FMT "", i);
   /* TODO: check for duplicate code pages */
 }
 
@@ -1112,7 +1112,7 @@ static void dirblk_warning (int level, const char *fmt, ULONG secno,
   va_list arg_ptr;
 
   warning_prolog (level);
-  my_fprintf (diag_file, "DIRBLK #%lu (\"%s\"): ",
+  my_fprintf (diag_file, "DIRBLK #" LU_FMT " (\"%s\"): ",
               secno, format_path_chain (path, NULL));
   va_start (arg_ptr, path);
   my_vfprintf (diag_file, fmt, arg_ptr);
@@ -1134,7 +1134,7 @@ static void dirent_warning (int level, const char *fmt, ULONG secno,
   va_list arg_ptr;
 
   warning_prolog (level);
-  my_fprintf (diag_file, "DIRBLK #%lu (\"%s\"): ",
+  my_fprintf (diag_file, "DIRBLK #" LU_FMT " (\"%s\"): ",
               secno, format_path_chain (path, NULL));
   if (fname == NULL)
     my_fprintf (diag_file, "DIRENT %d: ", dirent_no);
@@ -1157,7 +1157,7 @@ static void show_dirent (const DIRENT *p, int indent)
   const BYTE *pb;
 
   length = READ_USHORT (&p->cchThisEntry);
-  infoi ("Length:                      %lu\n", indent, length);
+  infoi ("Length:                      " LU_FMT "\n", indent, length);
   infoi ("Flags:                       0x%.2x", indent, p->bFlags);
   if (p->bFlags & DF_SPEC) info (" ..");
   if (p->bFlags & DF_END) info (" end");
@@ -1185,7 +1185,7 @@ static void show_dirent (const DIRENT *p, int indent)
       if (p->bAttr & ATTR_NONFAT)
         info (" non-FAT");
       info ("\n");
-      infoi ("FNODE:                       #%lu\n", indent,
+      infoi ("FNODE:                       #" LU_FMT "\n", indent,
              READ_ULONG (&p->lsnFNode));
       infoi ("Time of creation:            %s\n", indent,
              format_time (READ_ULONG (&p->timCreate)));
@@ -1193,14 +1193,14 @@ static void show_dirent (const DIRENT *p, int indent)
              format_time (READ_ULONG (&p->timLastMod)));
       infoi ("Time of last access:         %s\n", indent,
              format_time (READ_ULONG (&p->timLastAccess)));
-      infoi ("Size of file:                %lu\n", indent,
+      infoi ("Size of file:                " LU_FMT "\n", indent,
              READ_ULONG (&p->cchFSize));
-      infoi ("Size of extended attributes: %lu\n", indent,
+      infoi ("Size of extended attributes: " LU_FMT "\n", indent,
              READ_ULONG (&p->ulEALen));
       infoi ("Number of ACEs:              %u\n", indent, p->bFlex & 7);
       cpindex = p->bCodePage & 0x7f;
       if (cpindex >= code_page_count)
-        infoi ("Code page index:             %lu\n", indent, cpindex);
+        infoi ("Code page index:             " LU_FMT "\n", indent, cpindex);
       else
         infoi ("Code page:                   %u\n", indent,
                READ_USHORT (&code_pages[cpindex].info.usCodePageID));
@@ -1230,7 +1230,7 @@ static void show_dirent (const DIRENT *p, int indent)
         }
     }
   if (p->bFlags & DF_BTP)
-    infoi ("Down pointer:                #%lu\n", indent,
+    infoi ("Down pointer:                #" LU_FMT "\n", indent,
            ((ULONG *)((const char *)p + length))[-1]);
 }
 
@@ -1352,13 +1352,13 @@ static void do_dirblk_what (DISKIO *d, const DIRBLK *pdir, ULONG secno,
 
   if (what_sector == secno)
     {
-      info ("  Change count(?):           %lu\n",
+      info ("  Change count(?):           " LU_FMT "\n",
             READ_ULONG (&pdir->dirblk.culChange) >> 1);
-      info ("  Offset to first free byte: 0x%lx\n",
+      info ("  Offset to first free byte: 0x" LX_FMT "\n",
             READ_ULONG (&pdir->dirblk.offulFirstFree));
-      info ("  Pointer to parent:         #%lu\n",
+      info ("  Pointer to parent:         #" LU_FMT "\n",
             READ_ULONG (&pdir->dirblk.lsnParent));
-      info ("  Pointer to this directory: #%lu\n",
+      info ("  Pointer to this directory: #" LU_FMT "\n",
             READ_ULONG (&pdir->dirblk.lsnThisDir));
     }
 
@@ -1376,7 +1376,7 @@ static void do_dirblk_what (DISKIO *d, const DIRBLK *pdir, ULONG secno,
           if (secno + pos / 512 != what_sector
               || secno + (pos + length - 1) / 512 != what_sector)
             info ("Partial ");
-          info ("DIRENT %d (offset 0x%lx):\n", dirent_index, pos);
+          info ("DIRENT %d (offset 0x" LX_FMT "):\n", dirent_index, pos);
           info ("    Name: \"%s\"\n", name);
           show_dirent (p, 4);
         }
@@ -1439,7 +1439,7 @@ static void do_dirblk_find (DISKIO *d, const DIRBLK *pdir, ULONG secno,
             {
               if (a_where)
                 {
-                  info ("Directory entry %d of DIRBLK #%lu+%lu (#%lu)\n",
+                  info ("Directory entry %d of DIRBLK #" LU_FMT "+" LU_FMT " (#" LU_FMT ")\n",
                         dirent_index, secno, pos / 512, secno + pos / 512);
                   show_dirent (p, 2);
                 }
@@ -1608,15 +1608,15 @@ static void do_dirblk_recurse (DISKIO *d, const DIRBLK *pdir, ULONG secno,
 
               t = READ_ULONG (&p->timLastMod);
               if (t != 0 && t < min_time)
-                dirent_warning (1, "Modification time is out of range (%lu)",
+                dirent_warning (1, "Modification time is out of range (" LU_FMT ")",
                                 secno, path, dirent_index, name, t);
               t = READ_ULONG (&p->timLastAccess);
               if (t != 0 && t < min_time)
-                dirent_warning (1, "Access time is out of range (%lu)",
+                dirent_warning (1, "Access time is out of range (" LU_FMT ")",
                                 secno, path, dirent_index, name, t);
               t = READ_ULONG (&p->timCreate);
               if (t != 0 && t < min_time)
-                dirent_warning (1, "Creation time is out of range (%lu)",
+                dirent_warning (1, "Creation time is out of range (" LU_FMT ")",
                                 secno, path, dirent_index, name, t);
 
               if (!(p->bFlags & DF_SPEC))
@@ -1648,7 +1648,7 @@ static void do_dirblk_recurse (DISKIO *d, const DIRBLK *pdir, ULONG secno,
                 gap -= sizeof (ULONG);
               if (gap > 3 && !(p->bFlags & DF_ACL))
                 dirent_warning (0, "DF_ACL should be set "
-                                "(up to %lu bytes of ACEs)",
+                                "(up to " LU_FMT " bytes of ACEs)",
                                 secno, path, dirent_index, name, gap);
               if ((p->bFlex & 7) && !(p->bFlags & DF_ACL))
                 dirent_warning (0, "DF_ACL should be set (ACE count: %u)",
@@ -1659,7 +1659,7 @@ static void do_dirblk_recurse (DISKIO *d, const DIRBLK *pdir, ULONG secno,
               if (p->bFlags & DF_BTP)
                 temp_size += sizeof (ULONG);
               if (temp_size != READ_USHORT (&p->cchThisEntry))
-                dirent_warning (0, "ACE count/size mismatch (%u/%lu)",
+                dirent_warning (0, "ACE count/size mismatch (%u/" LU_FMT ")",
                                 secno, path, dirent_index, name,
                                 p->bFlex & 7, gap);
               if (p->bFlex & ~7)
@@ -1717,7 +1717,7 @@ static void do_dirblk (DISKIO *d, ULONG secno, const path_chain *path,
   DIRBLK dir;
 
   if (a_what && IN_RANGE (what_sector, secno, 4))
-    info ("Sector #%lu: DIRBLK of \"%s\" (+%lu)\n",
+    info ("Sector #" LU_FMT ": DIRBLK of \"%s\" (+" LU_FMT ")\n",
           what_sector, format_path_chain (path, NULL), what_sector - secno);
   if (have_seen (secno, 4, SEEN_DIRBLK, "DIRBLK"))
     return;
@@ -1772,7 +1772,7 @@ static void alsec_warning (int level, const char *fmt, ULONG secno,
   va_list arg_ptr;
 
   warning_prolog (level);
-  my_fprintf (diag_file, "ALSEC #%lu (\"%s\"): ",
+  my_fprintf (diag_file, "ALSEC #" LU_FMT " (\"%s\"): ",
               secno, format_path_chain (path, NULL));
   va_start (arg_ptr, path);
   my_vfprintf (diag_file, fmt, arg_ptr);
@@ -1814,9 +1814,9 @@ static int do_alsec (DISKIO *d, ULONG secno, const path_chain *path,
   int height;
 
   if (show)
-    info ("ALSEC(%s): #%lu\n", alsec_number, secno);
+    info ("ALSEC(%s): #" LU_FMT "\n", alsec_number, secno);
   if (a_what && secno == what_sector)
-    info ("Sector #%lu: Allocation sector (ALSEC) for \"%s\"\n",
+    info ("Sector #" LU_FMT ": Allocation sector (ALSEC) for \"%s\"\n",
           secno, format_path_chain (path, NULL));
   if (have_seen (secno, 1, SEEN_ALSEC, "ALSEC"))
     return 1;
@@ -1851,7 +1851,7 @@ static void alloc_warning (int level, const char *fmt, ULONG secno,
   va_list arg_ptr;
 
   warning_prolog (level);
-  my_fprintf (diag_file, "%s #%lu (\"%s\"): ",
+  my_fprintf (diag_file, "%s #" LU_FMT " (\"%s\"): ",
               fnode_flag ? "FNODE" : "ALSEC",
               secno, format_path_chain (path, NULL));
   va_start (arg_ptr, path);
@@ -1947,14 +1947,14 @@ static int do_storage (DISKIO *d, ULONG secno, const ALBLK *header,
       max_height = 0;
       for (i = 0; i < n; ++i)
         {
-          sprintf (alsec_number + nlen, ".%lu", i);
+          sprintf (alsec_number + nlen, "." LU_FMT "", i);
           height = do_alsec (d, READ_ULONG (&pnode[i].lsnPhys), path,
                              pexp_file_sec, pnext_disk_sec, total_sectors,
                              parent_fnode, secno, alsec_level, what,
                              pextents, show, copy_size, buf, buf_size);
           if (READ_ULONG (&pnode[i].lsnLog)
               != (i + 1 == n ? 0xffffffff : *pexp_file_sec))
-            alloc_warning (1, "Wrong file sector in ALNODE (%lu vs. %lu)",
+            alloc_warning (1, "Wrong file sector in ALNODE (" LU_FMT " vs. " LU_FMT ")",
                            secno, path, fnode_flag,
                            READ_ULONG (&pnode[i].lsnLog),
                            (i + 1 == n ? 0xffffffff : *pexp_file_sec));
@@ -1991,7 +1991,7 @@ static int do_storage (DISKIO *d, ULONG secno, const ALBLK *header,
           start = READ_ULONG (&pleaf[i].lsnPhys);
           count = READ_ULONG (&pleaf[i].csecRun);
           if (READ_ULONG (&pleaf[i].lsnLog) != *pexp_file_sec)
-            alloc_warning (1, "Wrong file sector (%lu vs. %lu)",
+            alloc_warning (1, "Wrong file sector (" LU_FMT " vs. " LU_FMT ")",
                            secno, path, fnode_flag,
                            READ_ULONG (&pleaf[i].lsnLog), *pexp_file_sec);
           if (check_pedantic && *pnext_disk_sec != 0
@@ -2000,12 +2000,12 @@ static int do_storage (DISKIO *d, ULONG secno, const ALBLK *header,
                            secno, path, fnode_flag);
           *pnext_disk_sec = start + count;
           if (show)
-            info ("  %c%s in %s (file sector %lu)\n",
+            info ("  %c%s in %s (file sector " LU_FMT ")\n",
                   toupper (what_text[0]), what_text+1,
                   format_sector_range (start, count),
                   READ_ULONG (&pleaf[i].lsnLog));
           if (a_what && IN_RANGE (what_sector, start, count))
-            info ("Sector #%lu: Sector %lu of %s for \"%s\" (+%lu)\n",
+            info ("Sector #" LU_FMT ": Sector " LU_FMT " of %s for \"%s\" (+" LU_FMT ")\n",
                   what_sector,
                   *pexp_file_sec + what_sector - start,
                   what_text, format_path_chain (path, NULL),
@@ -2053,7 +2053,7 @@ static void fnode_warning (int level, const char *fmt, ULONG secno,
   va_list arg_ptr;
 
   warning_prolog (level);
-  my_fprintf (diag_file, "FNODE #%lu (\"%s\"): ",
+  my_fprintf (diag_file, "FNODE #" LU_FMT " (\"%s\"): ",
               secno, format_path_chain (path, NULL));
   va_start (arg_ptr, path);
   my_vfprintf (diag_file, fmt, arg_ptr);
@@ -2126,7 +2126,7 @@ static void do_auxinfo_ea (DISKIO *d, const BYTE *buf, ULONG buf_size,
              following the FEA structure. */
 
           if (show_eas >= 1)
-            info ("  Extended attribute %s (%lu bytes) is stored inline\n",
+            info ("  Extended attribute %s (" LU_FMT " bytes) is stored inline\n",
                   format_ea_name (pfea), value_size);
           size += sizeof (FEA) + pfea->cbName + 1 + value_size;
           if (show_frag)
@@ -2148,7 +2148,7 @@ static void do_auxinfo_ea (DISKIO *d, const BYTE *buf, ULONG buf_size,
               bytes = READ_ULONG (&psptr->cbRun);
               count = DIVIDE_UP (bytes, 512);
               if (show_eas >= 1)
-                info ("  Extended attribute %s (%lu bytes) is stored "
+                info ("  Extended attribute %s (" LU_FMT " bytes) is stored "
                       "in %s\n",
                       format_ea_name (pfea), bytes,
                       format_sector_range (start, count));
@@ -2156,7 +2156,7 @@ static void do_auxinfo_ea (DISKIO *d, const BYTE *buf, ULONG buf_size,
                 info ("  Extended attributes in %s\n",
                       format_sector_range (start, count));
               if (a_what && IN_RANGE (what_sector, start, count))
-                info ("Sector #%lu: EA data for \"%s\"\n",
+                info ("Sector #" LU_FMT ": EA data for \"%s\"\n",
                       what_sector, format_path_chain (path, NULL));
               use_sectors (start, count, USE_EA, path);
               size += sizeof (FEA) + pfea->cbName + 1 + bytes;
@@ -2180,8 +2180,8 @@ static void do_auxinfo_ea (DISKIO *d, const BYTE *buf, ULONG buf_size,
               start = READ_ULONG (&psptr->lsn);
               bytes = READ_ULONG (&psptr->cbRun);
               if (show_eas >= 1)
-                info ("  Extended attribute %s (%lu bytes) is stored in "
-                      "sectors mapped by ALSEC #%lu\n",
+                info ("  Extended attribute %s (" LU_FMT " bytes) is stored in "
+                      "sectors mapped by ALSEC #" LU_FMT "\n",
                       format_ea_name (pfea), bytes, start);
 
               /* Process the ALSEC. */
@@ -2192,7 +2192,7 @@ static void do_auxinfo_ea (DISKIO *d, const BYTE *buf, ULONG buf_size,
                         DIVIDE_UP (bytes, 512), secno, secno,
                         0, USE_EA, &extents, show, 0, NULL, 0);
               if (show_eas >= 1)
-                info ("  Number of sectors for this EA: %lu\n", file_sec);
+                info ("  Number of sectors for this EA: " LU_FMT "\n", file_sec);
 
               /* Check the number of sectors.  There is a bug in
                  HPFS.IFS: It never assigns more than 40 extents (that
@@ -2202,7 +2202,7 @@ static void do_auxinfo_ea (DISKIO *d, const BYTE *buf, ULONG buf_size,
                 fnode_warning (1, "Not enough sectors allocated for EA %s",
                                secno, path, format_ea_name (pfea));
               if (file_sec > DIVIDE_UP (bytes, 512))
-                fnode_warning (1, "Too many sectors allocated for EA %s (%lu)",
+                fnode_warning (1, "Too many sectors allocated for EA %s (" LU_FMT ")",
                                secno, path, format_ea_name (pfea),
                                file_sec - DIVIDE_UP (bytes, 512));
 
@@ -2227,10 +2227,10 @@ static void do_auxinfo_ea (DISKIO *d, const BYTE *buf, ULONG buf_size,
      stored in the FNODE. */
 
   if (check_ea_size && size != ea_size)
-    fnode_warning (1, "Incorrect EA size (%lu vs. %lu)",
+    fnode_warning (1, "Incorrect EA size (" LU_FMT " vs. " LU_FMT ")",
                    secno, path, size, ea_size);
   if (need_ea_count != ea_need)
-    fnode_warning (1, "Incorrect number of `need' EAs (%lu vs. %lu)",
+    fnode_warning (1, "Incorrect number of `need' EAs (" LU_FMT " vs. " LU_FMT ")",
                    secno, path, need_ea_count, ea_need);
 }
 
@@ -2313,11 +2313,11 @@ static void do_auxinfo (DISKIO *d, const FNODE *pfnode, const AUXINFO *pai,
           if (a_where)
             {
               if (what == USE_EA)
-                info ("  Extended attributes (FEA structures, %lu bytes) "
-                      "in sectors mapped by ALSEC #%lu\n",
+                info ("  Extended attributes (FEA structures, " LU_FMT " bytes) "
+                      "in sectors mapped by ALSEC #" LU_FMT "\n",
                       run_length, start);
               else
-                info ("  ACL (%lu bytes) in sectors mapped by ALSEC #%lu\n",
+                info ("  ACL (" LU_FMT " bytes) in sectors mapped by ALSEC #" LU_FMT "\n",
                       run_length, start);
             }
           if (buf_size <= 0x100000)
@@ -2333,7 +2333,7 @@ static void do_auxinfo (DISKIO *d, const FNODE *pfnode, const AUXINFO *pai,
             fnode_warning (1, "Not enough sectors allocated for %s",
                            secno, path, (what == USE_EA ? "EAs" : "ACLs"));
           if (file_sec > DIVIDE_UP (run_length, 512))
-            fnode_warning (1, "Too many sectors allocated for %s (%lu)",
+            fnode_warning (1, "Too many sectors allocated for %s (" LU_FMT ")",
                            secno, path, (what == USE_EA ? "EAs" : "ACLs"),
                            file_sec - DIVIDE_UP (run_length, 512));
         }
@@ -2347,23 +2347,23 @@ static void do_auxinfo (DISKIO *d, const FNODE *pfnode, const AUXINFO *pai,
           if (a_where)
             {
               if (what == USE_EA)
-                info ("  Extended attributes (FEA structures, %lu bytes) "
+                info ("  Extended attributes (FEA structures, " LU_FMT " bytes) "
                       "in %s\n",
                       run_length, format_sector_range (start, count));
               else
-                info ("  ACL (%lu bytes) in %s\n",
+                info ("  ACL (" LU_FMT " bytes) in %s\n",
                       run_length, format_sector_range (start, count));
             }
 
           if (a_what && IN_RANGE (what_sector, start, count))
             {
               if (what == USE_EA)
-                info ("Sector #%lu: Extended attributes (FEA structures) for "
-                      "\"%s\" (+%lu)\n",
+                info ("Sector #" LU_FMT ": Extended attributes (FEA structures) for "
+                      "\"%s\" (+" LU_FMT ")\n",
                       what_sector, format_path_chain (path, NULL),
                       what_sector - start);
               else
-                info ("Sector #%lu: ACL for \"%s\" (+%lu)\n",
+                info ("Sector #" LU_FMT ": ACL for \"%s\" (+" LU_FMT ")\n",
                       what_sector, format_path_chain (path, NULL),
                       what_sector - start);
             }
@@ -2382,10 +2382,10 @@ static void do_auxinfo (DISKIO *d, const FNODE *pfnode, const AUXINFO *pai,
       if (a_where)
         {
           if (what == USE_EA)
-            info ("  Extended attributes (FEA structures, %lu bytes at 0x%x) "
-                  "in FNODE #%lu\n", fnode_length, base, secno);
+            info ("  Extended attributes (FEA structures, " LU_FMT " bytes at 0x%x) "
+                  "in FNODE #" LU_FMT "\n", fnode_length, base, secno);
           else
-            info ("  ACL (%lu bytes at 0x%x) in FNODE #%lu\n",
+            info ("  ACL (" LU_FMT " bytes at 0x%x) in FNODE #" LU_FMT "\n",
                   fnode_length, base, secno);
         }
       if (base < offsetof (FNODE, abFree))
@@ -2441,10 +2441,10 @@ static void do_fnode (DISKIO *d, ULONG secno, const path_chain *path,
   found = (a_find && *find_path == 0);
   show = (found && a_where);
   if (show)
-    info ("FNODE: #%lu\n", secno);
+    info ("FNODE: #" LU_FMT "\n", secno);
   if (a_what && secno == what_sector)
     {
-      info ("Sector #%lu: FNODE for \"%s\"\n",
+      info ("Sector #" LU_FMT ": FNODE for \"%s\"\n",
             secno, format_path_chain (path, NULL));
       show = TRUE;
     }
@@ -2478,7 +2478,7 @@ static void do_fnode (DISKIO *d, ULONG secno, const path_chain *path,
         fnode_warning (0, "Truncated name mangled by OS/2 2.0 bug",
                        secno, path);
       else if (fnode.fnode.achName[0] != name_len)
-        fnode_warning (1, "Wrong full name length (%lu vs. %lu)",
+        fnode_warning (1, "Wrong full name length (" LU_FMT " vs. " LU_FMT ")",
                        secno, path, (ULONG)fnode.fnode.achName[0],
                        (ULONG)name_len);
       else if (memcmp (fnode.fnode.achName+1, path->name,
@@ -2490,7 +2490,7 @@ static void do_fnode (DISKIO *d, ULONG secno, const path_chain *path,
         {
           for (i = 0; i < sizeof (fnode.fnode.abSpare); ++i)
             if (fnode.fnode.abSpare[i] != 0)
-              fnode_warning (0, "abSpare[%lu] is 0x%.2x", secno, path,
+              fnode_warning (0, "abSpare[" LU_FMT "] is 0x%.2x", secno, path,
                              i, fnode.fnode.abSpare[i]);
         }
     }
@@ -2501,21 +2501,21 @@ static void do_fnode (DISKIO *d, ULONG secno, const path_chain *path,
       if (fnode.fnode.bFlag & FNF_DIR)
         info (" dir");
       info ("\n");
-      info ("  Size of file:                %lu\n", fn_fsize);
-      info ("  Number of `need' EAs:        %lu\n",
+      info ("  Size of file:                " LU_FMT "\n", fn_fsize);
+      info ("  Number of `need' EAs:        " LU_FMT "\n",
             READ_ULONG (&fnode.fnode.ulRefCount));
       info ("  Offset of first ACE:         %u\n",
             READ_USHORT (&fnode.fnode.usACLBase));
       info ("  ACL size in FNODE:           %u\n",
             READ_USHORT (&fnode.fnode.aiACL.usFNL));
-      info ("  External ACL size:           %lu\n",
+      info ("  External ACL size:           " LU_FMT "\n",
             READ_ULONG (&fnode.fnode.aiACL.sp.cbRun));
     }
 
   if (dir_flag)
     {
       if (show)
-        info ("  Root DIRBLK sector:          #%lu\n",
+        info ("  Root DIRBLK sector:          #" LU_FMT "\n",
               READ_ULONG (&fnode.fnode.fst.a.aall[0].lsnPhys));
       if (a_copy && found)
         error ("Directories cannot be copied");
@@ -2575,15 +2575,15 @@ static void do_fnode (DISKIO *d, ULONG secno, const path_chain *path,
       if (show)
         {
           info ("  Allocation tree height:      %d\n", height);
-          info ("  Number of sectors:           %lu\n", file_sec);
-          info ("  Number of extents:           %lu\n", extents);
+          info ("  Number of sectors:           " LU_FMT "\n", file_sec);
+          info ("  Number of extents:           " LU_FMT "\n", extents);
         }
       if (show_frag)
         extents_stat (&file_extents, extents);
       if (file_sec * 512 < fn_fsize)
         fnode_warning (1, "Not enough sectors allocated", secno, path);
       if (file_sec > DIVIDE_UP (fn_fsize, 512))
-        fnode_warning (1, "Too many sectors allocated (%lu)",
+        fnode_warning (1, "Too many sectors allocated (" LU_FMT ")",
                        secno, path, file_sec - DIVIDE_UP (fn_fsize, 512));
     }
 
@@ -2682,7 +2682,7 @@ static void check_alloc (void)
   if (count == 1)
     warning (0, "The file system has 1 lost sector");
   else if (count > 1)
-    warning (0, "The file system has %lu lost sectors", count);
+    warning (0, "The file system has " LU_FMT " lost sectors", count);
 }
 
 
@@ -2716,14 +2716,14 @@ static void do_dirblk_bitmap (DISKIO *d, ULONG bsecno, ULONG start,
       if (BITSETP (bitmap, i))
         {
           if (usage_vector[dsecno] != USE_BANDDIRBLK)
-            warning (1, "Sector #%lu is marked available in the "
+            warning (1, "Sector #" LU_FMT " is marked available in the "
                      "DIRBLK bitmap, but is used as %s\n",
                      dsecno, sec_usage (usage_vector[dsecno]));
         }
       else
         {
           if (usage_vector[dsecno] != USE_DIRBLK)
-            warning (1, "Sector #%lu is marked used in the DIRBLK bitmap, "
+            warning (1, "Sector #" LU_FMT " is marked used in the DIRBLK bitmap, "
                      "but is used as %s\n",
                      dsecno, sec_usage (usage_vector[dsecno]));
         }
@@ -2743,7 +2743,7 @@ static void check_sparedirblk (const ULONG *list, ULONG total, ULONG free)
     {
       secno = READ_ULONG (&list[i]);
       if (secno < total_sectors && usage_vector[secno] != USE_DIRBLK)
-        warning (1, "Spare DIRBLK #%lu is not used for a DIRBLK", secno);
+        warning (1, "Spare DIRBLK #" LU_FMT " is not used for a DIRBLK", secno);
     }
 }
 
@@ -2809,7 +2809,7 @@ void do_hpfs (DISKIO *d)
 
   total_sectors = READ_ULONG (&superb.superb.culSectsOnVol);
   if (a_what && what_sector >= total_sectors)
-    warning (0, "Sector number #%lu is too big", what_sector);
+    warning (0, "Sector number #" LU_FMT " is too big", what_sector);
   if (diskio_type (d) == DIO_DISK && total_sectors > diskio_total_sectors (d))
     warning (1, "HPFS extends beyond end of partition indicated by BPB");
 
@@ -2856,13 +2856,13 @@ void do_hpfs (DISKIO *d)
   /* Boot sector. */
 
   if (a_what && what_sector == 0)
-    info ("Sector #%lu: Boot sector\n", what_sector);
+    info ("Sector #" LU_FMT ": Boot sector\n", what_sector);
   use_sectors (0, 1, USE_BOOT, NULL);
 
   /* Boot loader. */
 
   if (a_what && IN_RANGE (what_sector, 1, 15))
-    info ("Sector #%lu: Boot loader\n", what_sector);
+    info ("Sector #" LU_FMT ": Boot loader\n", what_sector);
   use_sectors (1, 15, USE_LOADER, NULL);
 
   /* Superblock. */
@@ -2870,7 +2870,7 @@ void do_hpfs (DISKIO *d)
   use_sectors (16, 1, USE_SUPER, NULL);
   if (a_info || (a_what && what_sector == 16))
     {
-      info ("Sector #%lu: Super block\n", (ULONG)16);
+      info ("Sector #" LU_FMT ": Super block\n", (ULONG)16);
       info ("  HPFS Version:                       %d\n",
             superb.superb.bVersion);
       info ("  Functional version:                 %d",
@@ -2883,35 +2883,35 @@ void do_hpfs (DISKIO *d)
         info (" (multimedia)\n");
       else
         info ("\n");
-      info ("  Root directory FNODE at:            #%lu\n",
+      info ("  Root directory FNODE at:            #" LU_FMT "\n",
             READ_ULONG (&superb.superb.lsnRootFNode));
-      info ("  Total number of sectors:            %lu\n",
+      info ("  Total number of sectors:            " LU_FMT "\n",
             READ_ULONG (&superb.superb.culSectsOnVol));
       if (sector_number_format != 0
           && READ_ULONG (&superb.superb.culSectsOnVol) != 0)
-        info (  "Last sector:                        #%lu\n",
+        info (  "Last sector:                        #" LU_FMT "\n",
               READ_ULONG (&superb.superb.culSectsOnVol) - 1);
-      info ("  Number of bad sectors:              %lu\n",
+      info ("  Number of bad sectors:              " LU_FMT "\n",
             READ_ULONG (&superb.superb.culNumBadSects));
-      info ("  Bitmap indirect block at:           #%lu\n",
+      info ("  Bitmap indirect block at:           #" LU_FMT "\n",
             READ_ULONG (&superb.superb.rspBitMapIndBlk.lsnMain));
-      info ("  Bad block list starts at:           #%lu\n",
+      info ("  Bad block list starts at:           #" LU_FMT "\n",
             READ_ULONG (&superb.superb.rspBadBlkList.lsnMain));
       info ("  Time of last chkdsk:                %s\n",
             format_time (READ_ULONG (&superb.superb.datLastChkdsk)));
       info ("  Time of last optimization:          %s\n",
             format_time (READ_ULONG (&superb.superb.datLastOptimize)));
-      info ("  Number of sectors in DIRBLK band:   %lu\n",
+      info ("  Number of sectors in DIRBLK band:   " LU_FMT "\n",
             READ_ULONG (&superb.superb.clsnDirBlkBand));
-      info ("  First sector in DIRBLK band:        #%lu\n",
+      info ("  First sector in DIRBLK band:        #" LU_FMT "\n",
             READ_ULONG (&superb.superb.lsnFirstDirBlk));
-      info ("  Last sector in DIRBLK band:         #%lu\n",
+      info ("  Last sector in DIRBLK band:         #" LU_FMT "\n",
             READ_ULONG (&superb.superb.lsnLastDirBlk));
-      info ("  First sector of DIRBLK band bitmap: #%lu\n",
+      info ("  First sector of DIRBLK band bitmap: #" LU_FMT "\n",
             READ_ULONG (&superb.superb.lsnDirBlkMap));
-      info ("  Sector number of user ID table:     #%lu\n",
+      info ("  Sector number of user ID table:     #" LU_FMT "\n",
             READ_ULONG (&superb.superb.lsnSidTab));
-      info ("  Check sum (computed):               0x%.8lx\n", superb_chksum);
+      info ("  Check sum (computed):               0x" LU_8X_FMT "\n", superb_chksum);
     }
 
   /* The Superblock points to the DIRBLK band. */
@@ -2926,7 +2926,7 @@ void do_hpfs (DISKIO *d)
   use_sectors (17, 1, USE_SPARE, NULL);
   if (a_info || (a_what && what_sector == 17))
     {
-      info ("Sector #%lu: Spare block\n", (ULONG)17);
+      info ("Sector #" LU_FMT ": Spare block\n", (ULONG)17);
       info ("  Spare block flags:                  0x%.2x (",
             spareb.spareb.bFlag);
       if (spareb.spareb.bFlag & SPF_DIRT)
@@ -2940,30 +2940,30 @@ void do_hpfs (DISKIO *d)
       if (spareb.spareb.bFlag & SPF_FASTFMT) info (" fastfmt");
       if (spareb.spareb.bFlag & SPF_VER) info (" version");
       info (")\n");
-      info ("  Block size:                         %lu\n",
+      info ("  Block size:                         " LU_FMT "\n",
             sectors_per_block * 512);
-      info ("  Hotfix sector mapping table at:     #%lu\n",
+      info ("  Hotfix sector mapping table at:     #" LU_FMT "\n",
             READ_ULONG (&spareb.spareb.lsnHotFix));
-      info ("  Number of hotfixes used:            %lu\n",
+      info ("  Number of hotfixes used:            " LU_FMT "\n",
             READ_ULONG (&spareb.spareb.culHotFixes));
-      info ("  Maximum number of hotfixes:         %lu\n",
+      info ("  Maximum number of hotfixes:         " LU_FMT "\n",
             READ_ULONG (&spareb.spareb.culMaxHotFixes));
-      info ("  Number of free spare DIRBLKs:       %lu\n",
+      info ("  Number of free spare DIRBLKs:       " LU_FMT "\n",
             READ_ULONG (&spareb.spareb.cdbSpares));
-      info ("  Total number of spare DIRBLKs:      %lu\n",
+      info ("  Total number of spare DIRBLKs:      " LU_FMT "\n",
             READ_ULONG (&spareb.spareb.cdbMaxSpare));
-      info ("  Code page information sector at:    #%lu\n",
+      info ("  Code page information sector at:    #" LU_FMT "\n",
             READ_ULONG (&spareb.spareb.lsnCPInfo));
-      info ("  Number of code pages:               %lu\n",
+      info ("  Number of code pages:               " LU_FMT "\n",
             READ_ULONG (&spareb.spareb.culCP));
-      info ("  Checksum of Super block:            0x%.8lx\n",
+      info ("  Checksum of Super block:            0x" LU_8X_FMT "\n",
             READ_ULONG (&spareb.spareb.aulExtra[0]));
-      info ("  Checksum of Spare block:            0x%.8lx\n",
+      info ("  Checksum of Spare block:            0x" LU_8X_FMT "\n",
             READ_ULONG (&spareb.spareb.aulExtra[1]));
-      info ("  Check sum (computed):               0x%.8lx\n", spareb_chksum);
+      info ("  Check sum (computed):               0x" LU_8X_FMT "\n", spareb_chksum);
       n = READ_ULONG (&spareb.spareb.cdbMaxSpare);
       for (i = 0; i < n; ++i)
-        info ("  Spare DIRBLK at #%lu\n",
+        info ("  Spare DIRBLK at #" LU_FMT "\n",
               READ_ULONG (&spareb.spareb.alsnSpareDirBlks[i]));
     }
 
@@ -2973,7 +2973,7 @@ void do_hpfs (DISKIO *d)
 
   i = dirband_end - dirband_start + 1;
   if (a_what && IN_RANGE (what_sector, dirband_start, i))
-    info ("Sector #%lu is in the DIRBLK band\n", what_sector);
+    info ("Sector #" LU_FMT " is in the DIRBLK band\n", what_sector);
   use_sectors (dirband_start, i, USE_BANDDIRBLK, NULL);
 
   /* The DIRBLK band has its own allocation bitmap.  Each bit maps one
@@ -2981,9 +2981,9 @@ void do_hpfs (DISKIO *d)
 
   i = READ_ULONG (&superb.superb.lsnDirBlkMap);
   if (a_info)
-    info ("Sectors #%lu-#%lu: DIRBLK band bitmap\n", i, i + 3);
+    info ("Sectors #" LU_FMT "-#" LU_FMT ": DIRBLK band bitmap\n", i, i + 3);
   if (a_what && IN_RANGE (what_sector, i, 4))
-    info ("Sector #%lu is in the DIRBLK band bitmap (+%lu)\n",
+    info ("Sector #" LU_FMT " is in the DIRBLK band bitmap (+" LU_FMT ")\n",
           what_sector, what_sector - i);
   use_sectors (i, 4, USE_DIRBLKBITMAP, NULL);
 
@@ -2992,7 +2992,7 @@ void do_hpfs (DISKIO *d)
 
   i = READ_ULONG (&superb.superb.lsnSidTab);
   if (a_what && IN_RANGE (what_sector, i, 8))
-    info ("Sector #%lu: User ID\n", what_sector);
+    info ("Sector #" LU_FMT ": User ID\n", what_sector);
   use_sectors (i, 8, USE_SID, NULL);
 
   /* Spare DIRBLKs.  If HPFS runs out of disk space for DIRBLKs in a
@@ -3004,7 +3004,7 @@ void do_hpfs (DISKIO *d)
       if (a_what
           && IN_RANGE (what_sector,
                        READ_ULONG (&spareb.spareb.alsnSpareDirBlks[i]), 4))
-        info ("Sector #%lu: Spare DIRBLK (+%lu)\n",
+        info ("Sector #" LU_FMT ": Spare DIRBLK (+" LU_FMT ")\n",
               what_sector,
               what_sector
               - READ_ULONG (&spareb.spareb.alsnSpareDirBlks[i]));
@@ -3029,36 +3029,36 @@ void do_hpfs (DISKIO *d)
   if (a_check)
     {
       if (dirband_start > dirband_end)
-        warning (1, "SUPERBLK #%lu: DIRBLK band start greater than "
+        warning (1, "SUPERBLK #" LU_FMT ": DIRBLK band start greater than "
                  "DIRBLK band end", (ULONG)16);
       if (dirband_sectors & 3)
-        warning (1, "SUPERBLK #%lu: Number of DIRBLK band sectors is "
+        warning (1, "SUPERBLK #" LU_FMT ": Number of DIRBLK band sectors is "
                  "not a multiple of 4", (ULONG)16);
       if (dirband_start + dirband_sectors - 1 != dirband_end)
-        warning (1, "SUPERBLK #%lu: Wrong DIRBLK band size", (ULONG)16);
+        warning (1, "SUPERBLK #" LU_FMT ": Wrong DIRBLK band size", (ULONG)16);
       if (READ_ULONG (&superb.superb.lsnDirBlkMap) & 3)
-        warning (1, "SUPERBLK #%lu: DIRBLK band bitmap not on a 2K boundary",
+        warning (1, "SUPERBLK #" LU_FMT ": DIRBLK band bitmap not on a 2K boundary",
                  (ULONG)16);
 
       if (!(spareb.spareb.bFlag & SPF_HFUSED)
           != (READ_ULONG (&spareb.spareb.culHotFixes) == 0))
-        warning (1, "SPAREBLK #%lu: Hotfix bit is wrong", (ULONG)17);
+        warning (1, "SPAREBLK #" LU_FMT ": Hotfix bit is wrong", (ULONG)17);
       if (!(spareb.spareb.bFlag & SPF_BADSEC)
           != (READ_ULONG (&superb.superb.culNumBadSects) == 0))
-        warning (1, "SPAREBLK #%lu: Bad sector bit is wrong", (ULONG)17);
+        warning (1, "SPAREBLK #" LU_FMT ": Bad sector bit is wrong", (ULONG)17);
       if (!(spareb.spareb.bFlag & SPF_SPARE)
           != (READ_ULONG (&spareb.spareb.cdbSpares)
               == READ_ULONG (&spareb.spareb.cdbMaxSpare)))
-        warning (1, "SPAREBLK #%lu: Spare DIRBLK bit is wrong", (ULONG)17);
+        warning (1, "SPAREBLK #" LU_FMT ": Spare DIRBLK bit is wrong", (ULONG)17);
       if (READ_ULONG (&spareb.spareb.cdbSpares)
           > READ_ULONG (&spareb.spareb.cdbMaxSpare))
-        warning (1, "SPAREBLK #%lu: Number of free spare DIRBLKs exceeds "
+        warning (1, "SPAREBLK #" LU_FMT ": Number of free spare DIRBLKs exceeds "
                  "maximum number", (ULONG)17);
       if (READ_ULONG (&spareb.spareb.aulExtra[0]) != superb_chksum)
-        warning (1, "SPAREBLK #%lu: Incorrect checksum for Super block",
+        warning (1, "SPAREBLK #" LU_FMT ": Incorrect checksum for Super block",
                  (ULONG)17);
       if (READ_ULONG (&spareb.spareb.aulExtra[1]) != spareb_chksum)
-        warning (1, "SPAREBLK #%lu: Incorrect checksum for Spare block",
+        warning (1, "SPAREBLK #" LU_FMT ": Incorrect checksum for Spare block",
                  (ULONG)17);
 
       if (superb.superb.bFuncVersion == 4)
@@ -3071,16 +3071,16 @@ void do_hpfs (DISKIO *d)
              unused. */
 
           if (spareb.spareb.bAlign[0] != 8)
-            warning (0, "SPAREBLK #%lu: .bAlign[0] is %u", (ULONG)17,
+            warning (0, "SPAREBLK #" LU_FMT ": .bAlign[0] is %u", (ULONG)17,
                      spareb.spareb.bAlign[0]);
           if (spareb.spareb.bAlign[1] != 9)
-            warning (0, "SPAREBLK #%lu: .bAlign[1] is %u", (ULONG)17,
+            warning (0, "SPAREBLK #" LU_FMT ": .bAlign[1] is %u", (ULONG)17,
                      spareb.spareb.bAlign[1]);
         }
       if (check_pedantic)
         {
           if (spareb.spareb.bAlign[2] != 0)
-            warning (0, "SPAREBLK #%lu: .bAlign[2] is %u", (ULONG)17,
+            warning (0, "SPAREBLK #" LU_FMT ": .bAlign[2] is %u", (ULONG)17,
                      spareb.spareb.bAlign[2]);
         }
     }
@@ -3146,11 +3146,11 @@ void do_hpfs (DISKIO *d)
 
       if (show_summary)
         {
-          info ("Number of directories: %lu\n", dir_count);
-          info ("Number of files:       %lu\n", file_count);
-          info ("Number of DIRBLKs:     %lu (%lu outside DIRBLK band)\n",
+          info ("Number of directories: " LU_FMT "\n", dir_count);
+          info ("Number of files:       " LU_FMT "\n", file_count);
+          info ("Number of DIRBLKs:     " LU_FMT " (" LU_FMT " outside DIRBLK band)\n",
                 dirblk_total, dirblk_outside);
-          info ("Number of ALSECs:      %lu\n", alsec_count);
+          info ("Number of ALSECs:      " LU_FMT "\n", alsec_count);
         }
     }
 
