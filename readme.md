@@ -25,3 +25,9 @@ Directories of up to 5,000 entries have been tested, and files with up to 23,000
 ## `inspect`
 
 Dumps information about HPFS volume. I wrote this early into the creation of `hpfsutils`, so it uses a slightly different set of options. It's useful for determining raw values of various fields. 
+
+# License
+
+`hpfsimg`, `inspect`, and `mkhpfs` are released under the 3-clause BSD license. 
+
+All files in the `fst/` directory are released under GPLv2. 
