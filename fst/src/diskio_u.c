@@ -148,6 +148,8 @@ ULONG save_sector_alloc;
 
 ULONG *save_sector_map;
 
+// from fst.c
+extern int partition_base;
 
 /* Obtain access to a device, file, snapshot file, or CRC file.  FNAME
    is the name of the disk or file to open.  FLAGS defines what types
@@ -740,6 +742,7 @@ static void read_sec_file (FILE *f, void *dst, ULONG sec, ULONG size,
 {
   int r;
 
+  sec += (ULONG)partition_base;
   seek_sec (f, sec, size);
   r = fread (dst, size, count, f);
   if (ferror (f))

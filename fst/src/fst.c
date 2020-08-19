@@ -94,6 +94,8 @@ ULONG set_ulong;                /* ULONG value for `set' */
 struct change *changes;         /* Chain of changes for `set-data' */
 static ULONG force_sector_size; /* -ss=N */
 
+int partition_base;
+
 /* This table maps lower-case letters to upper case, using the current
    code page. */
 BYTE cur_case_map[256];
@@ -813,6 +815,7 @@ static void usage (void)
         "  -fat=N    Use FAT number N\n"
         "  -n        Continue if disk cannot be locked\n"
         "  -ss=N     Use sector size N (default: 512)\n"
+        "  -p=N      Set partition offset (default: 0, for raw partitions)\n"
         "  -w        Enable writing to disk\n"
         "  -x        Show sector numbers in hexadecimal\n"
         "  -z        0x00 does not end a FAT directory\n"
@@ -2159,6 +2162,14 @@ int main (int argc, char *argv[])
                     && x != 2048))
               usage ();
             force_sector_size = x;
+            ++i;
+          }
+        else if (strncmp (argv[i], "-p=", 3) == 0)
+          {
+            ULONG x;
+            if (!parse_ulong (&x, argv[i]+3))
+              usage ();
+            partition_base = (int)x;
             ++i;
           }
         else if (strcmp (argv[i], "-w") == 0)
